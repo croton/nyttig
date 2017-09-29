@@ -1,0 +1,53 @@
+/* colorfilter -- Read from the input (STDIN). */
+parse arg target opt .
+call trace 'off'
+signal on notready name programEnd
+if opt='' then do forever
+  parse pull input
+  say copyProfileColors(input,target)
+end
+else do forever
+  parse pull input
+  say diffProfileColors(input,target)
+end
+exit
+
+/* Parse output from registry query
+   ex. ColorTable01           : 8405248
+*/
+parseRegistryColorValues: procedure
+  parse arg colortable . val
+  return colortable val
+
+/* Copy colors from source profile to target profile */
+copyProfileColors: procedure
+  parse arg ctable . cval, target
+  if ctable='' then return ''
+  if right(ctable,2)='00' then return ''
+
+  pscmd='powershell -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile'
+  colorcmd='Set-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable '-Value' cval
+  ADDRESS SYSTEM pscmd colorcmd
+  return colorcmd
+
+diffProfileColors: procedure
+  parse arg ctable . cval, target
+  if ctable='' then return ''
+  pscmd='powershell -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile'
+  ADDRESS SYSTEM pscmd 'Get-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable '|grep -i ColorTable |RXQUEUE'
+  if queued()>0 then parse pull ttable . tval
+  if cval=tval then return ctable 'same'
+  else              return ctable 'Src='left(strip(cval),18) 'Target='tval
+
+copyProfileColors2: procedure
+  parse arg ctable . cval, src, target
+  if ctable='' then return ''
+  if right(ctable,2)='00' then return ''
+
+  pscmd='powershell -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile'
+  ADDRESS SYSTEM pscmd 'Get-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable
+
+  return '> Set-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable '-Value' cval
+
+programEnd:
+exit 0

@@ -1,0 +1,5 @@
+/* mochanges - show the changed files in the last month. */
+parse value date() with dayno monthname .
+say centre(' Changed files during' translate(monthname)||' ',40,'*')
+'cf .' dayno
+exit

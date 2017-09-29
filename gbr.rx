@@ -1,0 +1,68 @@
+/* gbr -- git branch utility
+   Created 08-14-2017
+*/
+parse arg input
+select
+  when input='-?' then call help
+  when input='p' then call push2branch
+  otherwise           call pickBranch
+end
+exit
+
+getCurrentBranch: procedure
+  curBranch=''
+  ADDRESS SYSTEM 'git branch |RXQUEUE'
+  do while queued()>0
+    parse pull flag branchname
+    if flag='*' then curBranch=branchname
+  end
+  return curBranch
+
+push2branch: procedure
+  call runGitCmd 'git push origin' getCurrentBranch()
+  return
+
+pickBranch: procedure
+  tmpfile='gbr-rx-temp.txt'
+  curBranch=writeBranches(tmpfile)
+  newBranch=''
+  'regina picker' tmpfile 'Pick a branch (curr='curBranch')'
+  -- Choice is saved in clipboard
+  ADDRESS SYSTEM 'pc |RXQUEUE'
+  if queued()>0 then parse pull newBranch
+  'del' tmpfile
+  if newBranch<>'' then call runGitCmd 'git checkout' newBranch
+  return
+
+writeBranches: procedure
+  parse arg fn
+  curBranch=''
+  ADDRESS SYSTEM 'git branch |RXQUEUE'
+  do while queued()>0
+    parse pull entry
+    if entry<>'' then do
+      if left(entry,1)='*' then curBranch=subword(entry,2)
+      else                      call lineout fn, entry
+    end
+  end
+  call lineout fn
+  return curBranch
+
+runGitCmd: procedure
+  parse arg gcmd
+  call charout , gcmd '(ENTER=Yes)? '
+  pull ans
+  if ans='' then do
+    say gcmd
+    gcmd
+  end
+  else say 'Cancel:' gcmd
+  return
+
+help:
+say 'gbr - git branch utility'
+say 'usage: gbr [option]'
+say 'options'
+say '  p = push to current branch'
+say '  default = pick a branch'
+exit

@@ -1,0 +1,210 @@
+:: query git config
+git config --list
+git config --get user.name
+git config --get user.email
+-- define default editor
+git config --global core.editor "%cjp%\x2\x.exe"
+-- merge tools
+git config --global merge.tool p4merge
+
+Configure Git for the first time
+--------------------------------
+  git config --global user.name "Pena, Celestino"
+  git config --global user.email "Celestino.Pena@firstdata.com"
+
+Working with your repository
+I just want to clone this repository
+------------------------------------
+If you want to simply clone this empty repository then run this command in your terminal.
+  git clone ssh://git@somerepo.com:7999/~myuser/my-doggo-connect.git
+
+My code is ready to be pushed
+-----------------------------
+If you already have code ready to be pushed to this repository then run this in your terminal.
+  cd existing-project
+  git init
+  git add --all
+  git commit -m "Initial Commit"
+  git remote add origin ssh://git@somerepo.com:7999/~myuser/my-doggo-connect.git
+  git push -u origin master
+
+My code is already tracked by Git
+---------------------------------
+If your code is already tracked by Git then set this repository as your "origin" to push to.
+  cd existing-project
+  git remote set-url origin ssh://git@somerepo.com:7999/~myuser/my-doggo-connect.git
+  git push -u origin master
+
+/* -------------------------------- Updating -------------------------------- */
+Example scenario: Update local my-cricket-client project with changes on remote repos specifying a
+particular branch
+  -- show remote repositories
+  git remote
+  >> origin
+
+  -- show branches on local
+  git branch
+  >> * master
+
+  -- show branches on remote repos
+  git branch -r
+    >> origin/WOOFID-16.09-Release
+    >> origin/HEAD -> origin/master
+    >> origin/cleanup
+    >> origin/develop
+    >> origin/f89g6wn_projects
+    >> origin/feature/alex_local
+    >> origin/feature/ecsr-4-client
+    >> origin/feature/harvestsync
+    >> origin/feature/liberty
+    >> origin/master
+    >> origin/release/16_10
+
+  -- Create a new branch and switch to it
+  git checkout -b liberty
+  git branch
+  >> * liberty
+  >>   master
+
+  -- Fetch latest changes and merge a specific branch
+  git fetch
+  git merge origin/feature/liberty
+
+/* -------------------- Undoing Staged and Unstaged work -------------------- */
+  To unstage and discard all changes ...
+    git reset HEAD .
+    git checkout .
+
+  To remove unstaged files ...
+    git clean -f
+
+  To remove staged changes ...
+    git reset --hard
+
+  To save changes (to a stack) and undo ...
+    git stash
+
+  To show what's on the stash ...
+    git stash list
+
+  To define a git alias ...
+    in .gitconfig enter
+    [alias]
+      undo = '!git reset HEAD . && git checkout .'
+
+/* ----- Git command history for February 22, 2017 to fix local branch ------ */
+
+-- From local branch 'liberty' make a commit
+git commit -m "Enhance FroggyLogger"
+
+-- Base this local branch on appropriate remote branch
+git pull --rebase origin feature/liberty
+
+-- Create a new local branch for the new feature (logging)
+-- since made from rebased 'liberty' branch, it also is rebased
+git branch feature/logging
+
+-- Push changes to remote fails; need to set-upstream
+git push
+git push --set-upstream origin feature/logging
+
+-- For demo purposes, check out a remote branch; this creates a local branch if none exists
+git checkout feature/liberty
+
+-- Now check out the proper branch
+git checkout feature/logging
+
+-- Remove 'liberty', now that we have the properly named 'feature/logging'
+git branch -d liberty
+
+/* -------------- Re-clone of project on February 28, 2017 -------------- */
+-- rename pre-existing repo
+  ren my-cricket-client my-cricket-client-1
+
+-- get new repo
+  git clone ssh://git@somerepo.com:7999/~someuser/my-cricket-client.git
+
+-- cd into new repo and check out appropriate branch
+  myuser@mymachine MINGW64 /c/Development/my-cricket-client (master)
+  $ gc feature/liberty
+    Checking out files: 100% (8527/8527), done.
+    Branch feature/liberty set up to track remote branch feature/liberty from origin.
+    Switched to a new branch 'feature/liberty'
+
+/* ------------------------- Mods of March 1, 2017 -------------------------- */
+C:\Development\my-cricket-client>gs
+On branch feature/logging
+Your branch and 'origin/feature/logging' have diverged,
+and have 1 and 4 different commits each, respectively.
+  (use "git pull" to merge the remote branch into yours)
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+
+        both modified:   eCustService/pom.xml
+no changes added to commit (use "git add" and/or "git commit -a")
+
+Hi Travis, when I "git pull" on my feature/logging I get a conflict bw my changes on the POM and yours.
+I would like to blow my changes away and accept yours. What might be the cleanest way to do this? I made
+one commit which itself contained only one file - the change to the POM...
+
+git reset --hard HEAD~1
+  reset  = to reset the state to a defined point
+  --hard = to blow away the changes rather than leaving them unstaged
+           (which would allow you to add and commit them again if desired)
+  HEAD~1 = the commit 1 before HEAD which is the latest commit on the current branch
+
+
+/* ------------------------------ PR Conflicts ------------------------------ */
+This pull request has conflicts. You must resolve the conflicts before you can merge:
+
+Step 1: Fetch the changes (saving the target branch as FETCH_HEAD).
+  git fetch origin master
+
+Step 2: Checkout the source branch and merge in the changes from the target branch. Resolve conflicts.
+  git checkout bugfix/boogywa259
+  git merge FETCH_HEAD
+
+Step 3: After the merge conflicts are resolved, stage the changes accordingly, commit the changes and push.
+  git commit
+  git push origin HEAD
+
+Step 4: Merge the updated pull request.
+
+
+/* ------------------- Push bugfix to remote repo for PR -------------------- */
+-- Get latest changes from master into bugfix branch
+git pull origin master
+
+-- If you don't do above step you get this error
+  To ssh://git@somerepo.com:7999/WOOFcs/WOOF-ui.git
+   ! [rejected]        bugfix/filtermask -> bugfix/filtermask (non-fast-forward)
+  error: failed to push some refs to 'ssh://git@somerepo.com:7999/WOOFcs/WOOF-ui.git'
+  hint: Updates were rejected because the tip of your current branch is behind
+        its remote counterpart. Integrate the remote changes (e.g. 'git pull ...') before pushing again.
+        See the 'Note about fast-forwards' in 'git push --help' for details.
+
+-- Push changes to bugfix branch of WOOF-ui
+git push origin bugfix/filtermask
+
+/* ------------ Roll back a specific file to a specific revision ------------ */
+Example - something broke in a change to Gruntfile so check history
+  git log --follow -p Gruntfile
+  -- identify revision of most recent change, say, 'wxyz', then note previous revision
+  -- check out this file, this revision like so ...
+  -- syntax: git checkout <commit> <file>    or
+             git checkout <commit> -- <file>
+             (double hyphen is a clarifier which tells git 'the following are file names, not branch names')
+  git checkout 77bf11ff Gruntfile
+
+/* ---------------- Steps to correct a bad merge 4 Aug 2017 ----------------- */
+git fetch --all
+gc master
+git reset --hard origin/master
+gc -b bugfix/repair-account-info-component
+git add source/js/app/components/bongos/bongoInfo/bongoInfoComponent.tpl.html
+git commit -m "Correction to bongoInfo template"
+git push origin bugfix/repair-bongo-info-component
+

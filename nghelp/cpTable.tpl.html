@@ -1,0 +1,25 @@
+<h3>Table Template</h3>
+<div>
+  Howdy, yall, we are defined in C:*Users*fatxL7a*cjp*work*ngdemo*transcluder*ex1-tpl.html
+  <p>We have mayflies {{cjp.tabdata.length}}</p>
+  <table class="table table-striped">
+    <thead>
+      <th>Id</th>
+      <th>Mayfly</th>
+      <th>Type</th>
+      <th>Custom</th>
+    </thead>
+    <tbody>
+      <tr ng-repeat="fly in cjp.tabdata">
+        <td>{{fly.id}}</td>
+        <td>{{fly.name}}</td>
+        <td>{{fly.type}}</td>
+        <td><span name="{{'custom-'+fly.id}}" ng-transclude="yCustom"></span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p ng-transclude="myCustom"></p>
+</div>
+<hr/>
+<button class="btn" ng-click="cjp.greet()">Check console for greeting</button>
+<p>End of Super Duper Template</p>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ex1 Demo</title>
+  <link rel="stylesheet" href="../bootstrap.min.css">
+</head>
+<body ng-app="ex1">
+  <h3>ex1</h3>
+  <div class="container">
+    <div ng-controller="ex1Controller as ctrl">
+
+      <button class="btn" ng-click="ctrl.greet()">Check console for greeting</button>
+    </div>
+    <simple-static>
+    </simple-static>
+    <simple-sub>
+      This is our inner html or text node within tag <i>simple-sub</i>
+    </simple-sub>
+    <sub-two>
+      <my-custom>
+        <ul>
+          <li>simple-static</li>
+          <li>simple-sub</li>
+          <li>sub-two</li>
+        </ul>
+      </my-custom>
+    </sub-two>
+    <multi-sub>
+      <my-head>Super Duper Header</my-head>
+      <my-body>
+To approach true user-friendliness, the asynchronous insertion
+of duplicate reversal transactions maximizes the probability of
+project success, yet minimizes cost and time required for the
+anticipated client change request submission.
+      </my-body>
+      <my-foot>copyright 2017 Donkey Consortium of North America</my-foot>
+    </multi-sub>
+    <attr-reader fooz="black nosed dace">
+    </attr-reader>
+    <reader-two fooz="johnny darter">
+    </reader-two>
+  </div>
+
+  <!-- Angular v. 1.5 -->
+  <script src="../angular.min.js"></script>
+  <script src="ex1.js"></script>
+</body>
+</html>

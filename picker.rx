@@ -1,0 +1,49 @@
+/* picker -- Make a selection from items in a text file using dialog utility
+   Created 08-09-2017
+*/
+parse arg filename title
+if abbrev('-?', filename) then call help
+
+call makeScript filename, title
+exit
+
+help:
+say 'picker - Make a selection from items in a text file'
+say 'usage: picker list-file-name [title]'
+exit
+
+/*  Generate the dialog utility commands into a script. */
+makeScript: procedure
+  parse arg listsrc, title, keep
+  if stream(listsrc,'c','query exists')='' then call help
+  items.0=0
+  maxitemlen=0
+  do i=1 until lines(listsrc)=0
+    data=linein(listsrc)
+    wordcount=words(data)
+    if wordcount<2 then data=data '--'i
+    else if wordcount>2 then data=word(data,1) space(subword(data,2), 1, '_')
+    datalen=length(data)
+    if datalen>maxitemlen then maxitemlen=datalen
+    items.i=data
+  end
+  call lineout listsrc -- close the file
+  dheight=20
+  dwidth=max(maxitemlen+5, 30)
+  mheight=18
+  script='pickjunk.bat'
+  ans='pickjunk.temp'
+  if title='' then title='Pick one:'
+  if stream(script,'c','query exists')<>'' then 'del' script
+  call lineout script, 'dialog --begin 3 5 --clear --menu "'title'"' dheight dwidth mheight '^'
+  items.0=i
+  do i=1 to items.0-1
+    call lineout script, items.i '^'
+  end i
+  call lineout script, items.i '2>'ans
+  call lineout script
+  'call' script
+  'type' ans '|gc'
+  if arg(3,'O') then 'del' ans script
+  return script
+
