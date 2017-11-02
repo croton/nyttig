@@ -1,0 +1,25 @@
+[{
+  "code": 200,
+  "head": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "emvChipDetailsList": [
+      {
+        "presentationInstrumentIdentifier": "12345667890"
+      }
+    ]
+  }
+},{
+  "code": 200,
+  "head": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "emvChipDetailsList": [
+      {
+        "presentationInstrumentIdentifier": "9876543210"
+      }
+    ]
+  }
+}]

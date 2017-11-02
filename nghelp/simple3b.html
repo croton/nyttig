@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html ng-app>
+<head>
+  <title>Angular Demos</title>
+</head>
+<body>
+  <h3>List and Search</h3>
+  <div class="container"
+       ng-init="fish=[ {name:'brook trout', genus:'Salvelinus'},
+         {name:'arctic char', genus:'Salvelinus'},
+         {name:'rainbow trout', genus:'Onchorhyncus'},
+         {name:'northern pike', genus:'Esox'},
+         {name:'bluegill', genus:'Lepomis'}]">
+  Name:<br/>
+  <input type="text" ng-model="name" /> {{ name }}
+  <br/>
+  <ul>
+    <!-- filter by name -->
+    <li ng-repeat="f in fish | filter:name">{{ f.name }} - {{ f.genus | uppercase}}</li>
+    <!-- Order by genus
+    <li ng-repeat="f in fish | orderBy:'genus'">{{ f.name }} - {{ f.genus | uppercase}}</li>
+    -->
+  </ul>
+  </div>
+
+  <!-- Angular v. 1.5 -->
+  <script src="../angular.min.js"></script>
+</body>
+</html>

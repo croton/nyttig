@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jq02 Demo</title>
+  <link rel="stylesheet" href="../bootstrap.min.css">
+  <style>
+    #myTextField {
+      border: 1px solid gold;
+      display: block
+    }
+  </style>
+</head>
+<body ng-app="jq02">
+  <h3>jq02</h3>
+  <div class="container">
+    <input type="text" id="myTextField" ng-model="ctrl.myTextValue">
+    <p>{{ctrl.myTextValue}}
+    </p>
+    <jq02-tag id="bonkers" dependsOn="myTextField">
+      Why, this is interesting - it does not display if parent directive has transclude set to false!
+    </jq02-tag>
+  </div>
+
+  <!-- Angular v. 1.5 -->
+  <script src="../angular.min.js"></script>
+  <script src="jq02.js"></script>
+</body>
+</html>

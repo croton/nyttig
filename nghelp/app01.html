@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html ng-app="app01">
+<head>
+  <title>Angular Demos</title>
+</head>
+<body>
+  <h3>Now Using Controller defined in Module "app01"</h3>
+  <div class="container" ng-controller="SimpleController">
+  Name:<br/>
+  <input type="text" ng-model="name" /> {{ name }}
+  <br/>
+  <ul>
+    <!-- filter by name
+    <li ng-repeat="f in fish | filter:name">{{ f.name }} - {{ f.genus | uppercase}}</li>
+    -->
+    <!-- Order by genus -->
+    <li ng-repeat="f in fish | orderBy:'genus'">{{ f.name }} - {{ f.genus | uppercase}}</li>
+  </ul>
+  </div>
+
+  <!-- Angular v. 1.5 -->
+  <script src="../angular.min.js"></script>
+  <script src="app01.js"></script>
+</body>
+</html>

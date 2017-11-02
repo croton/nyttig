@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Angular Demo</title>
+  <link rel="stylesheet" href="../bootstrap.min.css">
+  <style>
+    .box {
+      border: 1px solid #EEA2AD;
+      display: block
+    }
+  </style>
+</head>
+<body ng-app="jquick">
+  <h3>Simple Directives</h3>
+  <cjp id="foo" name="batty">
+  </cjp>
+
+  <!-- Angular v. 1.5 -->
+  <script src="../angular.min.js"></script>
+  <script>
+  angular.module('jquick',[]).
+  directive('cjp', function() {
+    return {
+      restrict: 'E',
+      scope: {},
+      template: '<h2>I am the cjp tag!</h2>',
+      link: function(scope, element, attrs) {
+        console.log('scope', scope);
+        console.log('element', element);
+        console.log('attrs', attrs);
+        if ('id' in attrs) console.log('ID attrib='+attrs.id);
+        element.on('click', function(e){
+          element.toggleClass('box');
+        });
+      }
+    };
+  });
+  </script>
+</body>
+</html>

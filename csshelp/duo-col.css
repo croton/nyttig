@@ -1,0 +1,18 @@
+#wrap {
+  background-color: #E6E6FA;
+  /* height: 500px; */
+}
+
+#nav {
+  border: medium dashed green;
+  float: left;
+  width: 28%;
+  height: inherit;
+}
+
+#content {
+  border: medium dotted #000000;
+  float: left;
+  width: 70%;
+  height: inherit;
+}

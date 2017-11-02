@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>jq01 Demo</title>
+  <link rel="stylesheet" href="../bootstrap.min.css">
+  <style>
+    #one, #two {
+      height: 40px;
+      width: 40px;
+      background-color: #EEA2AD
+    }
+  </style>
+</head>
+<body ng-app="jq01">
+  <h3>jq01 - NG DOM Manipulation</h3>
+  <div class="container">
+    <div ng-controller="jq01Controller as ctrl">
+      <cjp-simple>
+        This is my text node
+        <div id="one"> </div>
+        <div id="two"> </div>
+      </cjp-simple>
+    </div>
+  </div>
+
+  <!-- Angular v. 1.5 -->
+  <script src="../angular.min.js"></script>
+  <script src="jq01.js"></script>
+</body>
+</html>

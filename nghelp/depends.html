@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>fooz Demo</title>
+  <link rel="stylesheet" href="../bootstrap.min.css">
+  <style>
+    #comp77 {
+      display: block;
+      border: 1px dashed blue;
+    }
+  </style>
+</head>
+<body ng-app="fooz">
+  <h3>fooz</h3>
+  <div class="container">
+    Primary <input type="text" id="comp77" value="foo" />
+    <fooz-component id="newbie" depends-on="comp77">
+    </fooz-component>
+  </div>
+
+  <!-- Angular v. 1.5 -->
+  <script src="../angular.min.js"></script>
+  <script src="fooz.js"></script>
+</body>
+</html>

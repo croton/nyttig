@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html ng-app>
+<head>
+  <title>Angular Demos</title>
+</head>
+<body>
+
+  <div class="container" ng-init="fish=['brook trout','arctic char','northern pike','bluegill']">
+  <h3>Loop with ng-repeat Directive</h3>
+  <ul>
+    <li ng-repeat="f in fish">{{ f }}</li>
+    <!-- use a filter
+    <li ng-repeat="f in fish">{{ f | uppercase }}</li>
+    -->
+  </ul>
+  </div>
+
+  <!-- Angular v. 1.5 -->
+  <script src="../angular.min.js"></script>
+</body>
+</html>

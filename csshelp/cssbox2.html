@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>CSS Box model</title>
+    <style type="text/css">
+      html {
+        font-family: sans-serif;
+        background: #ccc;
+      }
+
+      h1 {
+        margin-top: 0;
+        padding-top: 24px;
+      }
+
+      p {
+        line-height: 1.5;
+        letter-spacing: 1px;
+      }
+
+      body {
+        background: white;
+        padding: 10px;
+
+        /* First bit of CSS from the article */
+        width: 70%;
+        max-width: 1280px;
+        min-width: 480px;
+        margin: 0 auto;
+      }
+
+      .constrain-in-container {
+         /* Second bit of CSS from the article */
+         display: block;
+         margin: 0 auto;
+         max-width: 100%;
+       }
+
+      .img-border {
+        border: medium dashed blue;
+      }
+
+      .one, .two {
+        background: rgb(171,130,255);
+        width: 300px;
+        height: 150px;
+        padding: 20px;
+        border: 10px solid black;
+        margin: 20px auto;
+      }
+
+      .two {
+        box-sizing: border-box;
+      }
+    </style>
+
+    <!-- link href="css/bootstrap.min.css" rel="stylesheet" -->
+  </head>
+  <body>
+    <h1>Min and max width example</h1>
+    <p>
+      Conversely, initiation of critical subprogram configuration
+      presents extremely interesting challenges to the inherent
+      confusion associated with incorrect requirements delineation.
+    </p>
+    <img class="img-border" src="img/spock-smiling.png" alt="Some picture" width="635" height="530" />
+
+    <p>
+      It should be noted that the fully integrated status update
+      feedback mechanism is functionally equivalent and parallel to
+      the greater fight-worthiness concept.
+    </p>
+    <img class="constrain-in-container" src="img/spock-smiling.png" alt="Some picture" width="635" height="530" />
+
+    <h1>Alternate to Box Model example</h1>
+    <div class="one"></div>
+    <div class="two"></div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script>
+      function outputWH(box) {
+        var width = box.offsetWidth;
+        var height = box.offsetHeight;
+        box.textContent = 'Width: ' + width + 'px, Height: ' + height + 'px.'
+      }
+
+      var one = document.querySelector('.one');
+      var two = document.querySelector('.two');
+      outputWH(one);
+      outputWH(two);
+    </script>
+  </body>
+</html>

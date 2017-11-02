@@ -26,7 +26,7 @@ var myarray=[17, 2.5, 'three', myobj, 100, 200, 300];
 console.log('survey() myobj...');
 utils.survey(myobj);
 
-console.log('Inspect() myobj...');
+console.log('inspect() myobj...');
 utils.inspect(myobj);
 
 console.log('survey myarray...');
@@ -44,3 +44,7 @@ if (jsonfile!='') {
   catch (e) { console.log('Oops! '+e.message); }
   // if (jso==null) console.log('Sorry invalid json file: '+jsonfile); else { }
 }
+
+console.log('copies()');
+console.log(' '+utils.copies((utils.args()>4?utils.arg(4):'Mayfly'), 3));
+
