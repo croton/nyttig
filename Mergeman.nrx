@@ -1,0 +1,61 @@
+/* Mergeman.nrx -- merge a template with dynamic values */
+parse arg fin values -- template and values
+if values='' then do
+  say 'Usage: Mergeman template values'
+  exit 1
+end
+
+-- Open and check the files
+do
+  infile=File(fin)
+  instream=FileInputStream(infile)
+  inhandle=BufferedReader(InputStreamReader(instream))
+catch e=IOException
+  say '# error opening file' e.getMessage
+end
+
+-- The main processing loop
+loop linenum=1 by 1
+  line=Rexx inhandle.readLine          -- get next line [as Rexx string]
+  if line=null then leave linenum      -- normal end of file
+
+  -- Perform substitution on any line containing placeholder
+  say merge(line, values)
+catch e=IOException
+  say '# error reading or writing file' e.getMessage
+catch RuntimeException
+  say '# processing ended'
+finally do                             -- close files
+    if inhandle\=null  then inhandle.close
+  catch IOException
+    -- ignore errors during close
+  end
+end linenum
+
+/* -----------------------------------------------------------------------------
+   Tokens may be parsed by space or by delimiter, which, if present must
+   be specified as first character of value list and be either '#' or '~'.
+   Example:
+     a b c   -- parsed by space, 1=a, 2=b, 3=c
+     ~a~b c  -- parsed by delim, 1=a, 2=b c
+   -----------------------------------------------------------------------------
+*/
+method merge(template, tokens) returns Rexx static
+  ph='?'             -- placeholder character
+  if template.pos(ph)=0 then return template
+  line=template
+  delim=tokens.left(1)
+  if delim='#' | delim='~' then do
+    w=0
+    tokens=tokens.substr(2)
+    loop until tokens=''
+      parse tokens val (delim) tokens
+      if val='' then iterate
+      w=w+1
+      line=line.changestr(ph||w, val)
+    end
+  end
+  else loop w=1 to tokens.words
+    line=line.changestr(ph||w, tokens.word(w))
+  end w
+  return line

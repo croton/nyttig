@@ -19,8 +19,8 @@ exit
 
 parseline: procedure
 parse arg input, idx, showmany
-if showmany then subword(input, idx)
-return           word(input, idx)
+if showmany then return subword(input, idx)
+return word(input, idx)
 
 programEnd:
 exit 0
