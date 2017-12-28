@@ -1,0 +1,185 @@
+/* mergerplus.nrx -- merge a template with dynamic values
+   Supports multi-line 'sub' templates
+*/
+parse arg fin values -- template and values
+if fin='' then do
+  say 'Usage: merger template [values]'
+  exit 1
+end
+
+-- Open and check the files
+do
+  infile=File(fin)
+  instream=FileInputStream(infile)
+  inhandle=BufferedReader(InputStreamReader(instream))
+catch e=IOException
+  say '# error opening file' e.getMessage
+end
+
+/* Prefixes, or tags
+   ?load? - Read specified file; if listname present then save under this name; otherwise include into file
+     Usage = ?load? filename [listname]
+   ?merge? - Merge specified template with a given collection
+     Usage = ?merge? listname template
+*/
+mylists=''
+subtemplate=ArrayList()
+-- Define special character sequences which denote dynamic section
+tagrx='??'         -- this prefix introduces a REXX expression
+tagcmd='++'        -- this prefix introduces an environment (cmd) expression
+tagload='?load?'   -- this prefix introduces a file inclusion
+tagmerge='?merge?' -- this prefix specifies a collection and a one-line template
+ph='?'             -- placeholder character
+-- The main processing loop
+loop linenum=1 by 1
+  line=Rexx inhandle.readLine          -- get next line [as Rexx string]
+  if line=null then leave linenum      -- normal end of file
+
+  -- Perform substitutions
+  if line.pos(ph)>0 then line=merge(line, values)
+
+  -- Interpret meta tags
+  parse line tag params
+  select
+    when tag=tagcmd then do
+      mylists['CMD']=params
+    end
+    when tag=tagrx then do
+      mylists['RX']=params
+    end
+    when tag=tagload then do
+      parse params filename listname
+      say '-- Read ['filename'] and save under "'listname'"'
+      if listname='' then readFile(filename)
+      else mylists[listname]=readIntoList(filename)
+    end
+    when tag=tagmerge then do
+      parse params listname tmpl
+      if listname='' then do
+        /* -------------- End a template -------------- */
+        if subtemplate.size=0 then do
+          say ' -- No item list by name "'listname'"'
+          iterate
+        end
+        parse subtemplate.get(0).toString listname  -- First entry is name of list
+        list=mylists[listname]
+        if list=null then do
+          say ' -- No item list by name "'listname'"'
+          iterate
+        end
+        loop val over list
+          loop idx=1 to subtemplate.size-1
+            parse subtemplate.get(idx).toString tmpl
+            say merge(tmpl, list[val], '@')
+          end -- source of template
+        end -- list of values
+        subtemplate.clear  -- turn off sub-template handling
+        -- say 'subtmpl len' subtemplate.size
+      end -- End a multi-line template
+      else do
+        /* ------------- Begin a template ------------- */
+        if tmpl='' then subtemplate.add(listname)
+        else do
+          list=mylists[listname]
+          if list=null then say ' -- No item list by name "'listname'"'
+          else do
+            say '-- Merge sub-template ['tmpl'] with values in collection "'listname'"'
+            loop val over list
+              say merge(tmpl, list[val], '@')
+            end
+          end
+        end -- process one-line template
+      end -- handle list
+    end
+    -- Output as-is
+    otherwise
+      if subtemplate.size>0 then subtemplate.add(line)
+      else                       say line
+  end
+catch e=IOException
+  say '# error reading or writing file' e.getMessage
+catch RuntimeException
+  say '# processing ended'
+finally do                             -- close files
+    if inhandle\=null  then inhandle.close
+  catch IOException
+    -- ignore errors during close
+  end
+end linenum
+-- showVars(mylists)
+
+method readFile(fn) static
+  do
+    instream=FileInputStream(File(fn))
+    inhandle=BufferedReader(InputStreamReader(instream))
+  catch e=IOException
+    say '# Error opening file' e.getMessage
+  end
+  loop lineno=1 by 1
+    line=Rexx inhandle.readLine          -- get next line [as Rexx string]
+    if line=null then leave lineno       -- normal end of file
+    else say line
+  catch e=IOException
+    say '# Error reading or writing file' e.getMessage
+  catch RuntimeException
+    say '# Processing ended'
+  finally do                             -- close files
+      if inhandle\=null  then inhandle.close
+    catch IOException                    -- ignore errors during close
+    end
+  end lineno
+
+method readIntoList(fn) returns Rexx static
+  contents=''
+  do
+    instream=FileInputStream(File(fn))
+    inhandle=BufferedReader(InputStreamReader(instream))
+  catch e=IOException
+    say '# Error opening file' e.getMessage
+  end
+  loop lineno=1 by 1
+    line=Rexx inhandle.readLine          -- get next line [as Rexx string]
+    if line=null then leave lineno       -- normal end of file
+    else contents[lineno]=line
+  catch e=IOException
+    say '# Error reading or writing file' e.getMessage
+  catch RuntimeException
+    say '# Processing ended'
+  finally do                             -- close files
+      if inhandle\=null  then inhandle.close
+    catch IOException                    -- ignore errors during close
+    end
+  end lineno
+  return contents
+
+/* -----------------------------------------------------------------------------
+   Tokens may be parsed by space or by delimiter, which, if present must
+   be specified as first character of value list and be either '#' or '~'.
+   Example:
+     a b c   -- parsed by space, 1=a, 2=b, 3=c
+     ~a~b c  -- parsed by delim, 1=a, 2=b c
+   -----------------------------------------------------------------------------
+*/
+method merge(template, tokens, ph='?') returns Rexx static
+  if template.pos(ph)=0 then return template
+  line=template
+  delim=tokens.left(1)
+  if delim='#' | delim='~' then do
+    w=0
+    tokens=tokens.substr(2)
+    loop until tokens=''
+      parse tokens val (delim) tokens
+      if val='' then iterate
+      w=w+1
+      line=line.changestr(ph||w, val)
+    end
+  end
+  else loop w=1 to tokens.words
+    line=line.changestr(ph||w, tokens.word(w))
+  end w
+  return line
+
+method showVars(localvars) static
+  loop key over localvars
+    say ' ' key '->' localvars[key]
+  end

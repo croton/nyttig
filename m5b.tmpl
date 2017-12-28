@@ -1,0 +1,28 @@
+-- Sample 5b, like 5 and adds multi-line sub templates
+this is line 1 for topic (arg 1) ?1
+++ echo This is an environment command
+this is line 3
+?? say 'This is a REXX expression' date()
+This is the list found in ?2:
+?load? ?2 myInsects
+
+Lets merge these insects, shall we?
+
+Here is a one-line sub template
+?merge? myInsects  Genus: @1 species: @2
+
+Here is a multi-line sub template
+?merge? myInsects
+@1 get@2() {
+  return this.@2;
+}
+?merge?
+
+Here we have a second multi-line template
+?merge? myInsects
+** The caddis from Family @1
+** Are the @2s
+That's all
+?merge?
+
+This concludes our test.
