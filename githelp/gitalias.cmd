@@ -32,6 +32,7 @@ doskey gitui=start git-gui
 doskey gtui=git-gui -new_console
 doskey gmaster=git fetch origin master
 doskey gmastermrg=git merge FETCH_HEAD
+doskey guntrak=git ls-files . --exclude-standard --others
 
 doskey fsver=grep version package.json
 doskey webdrive=.\node_modules\protractor\node_modules\webdriver-manager\bin\webdriver-manager update

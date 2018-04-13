@@ -208,3 +208,24 @@ git add source/js/app/components/bongos/bongoInfo/bongoInfoComponent.tpl.html
 git commit -m "Correction to bongoInfo template"
 git push origin bugfix/repair-bongo-info-component
 
+/* ----------------------------- Undoing things ----------------------------- */
+-- Revert to a previous commit
+  git reset SHA_of_desired_commit
+-- ... this adds the changes of undesired commit (staged and untracked files) to the
+   current branch; now just undo these changes
+-- ... for untracked files and directories, -i = interactive, -f = force, -d = incl. directories
+  git clean -i -fd
+-- ... for staged changes
+  git checkout file_name
+
+/* --------- Brandon's addition of changes from master 16 Nov 2017 ---------- */
+  740  git status
+  741  git reset --hard
+  742  git status
+  743  git checkout origin/master -- security/**
+  744  git status
+  745  git add --all :/
+  746  git commit -m "put firefox back"
+  747  git push
+  748  git push --set-upstream origin feature/kohlssnap-payments
+
