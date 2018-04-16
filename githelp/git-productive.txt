@@ -229,3 +229,11 @@ git push origin bugfix/repair-bongo-info-component
   747  git push
   748  git push --set-upstream origin feature/kohlssnap-payments
 
+/* --------------------------- Using dates in Git --------------------------- */
+git log --format=fuller
+git log --since="yesterday"
+git log --since="1 week ago" --until="yesterday"
+git whatchanged --since="1/1/2010"
+git revert master@{"1 month ago"}
+git diff master@{"yesterday"} master@{"1 year 6 months ago"}
+
