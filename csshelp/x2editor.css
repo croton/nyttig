@@ -1,0 +1,83 @@
+.body {
+  font-family: "IBM Plex Mono", monospace;
+  width: 80%;
+}
+
+.statusline {
+  background-color: #CCCCCC;
+  height: 22px;
+}
+
+.filename {
+  float: left;
+  color: magenta;
+}
+
+.stats {
+  float: right;
+  color: blue;
+}
+
+.cmdline {
+  border: thin dashed orange;
+  height: 22px;
+}
+
+.cmdstack {
+  position: absolute;
+  top: 44px;
+  left: 0px;
+  height: 110px;
+  width: 300px;
+  padding-top: 5px;
+  line-height: 0.8;
+  background-color: #FFFFB4;   /* lt yellow */
+  color: #000080; /* dk blue */
+  visibility: hidden;
+}
+
+.bottomDelim {
+  height: 22px;
+}
+
+.bottomDelim:hover + .filesInRing {
+  visibility: visible;
+}
+
+.topDelim {
+  height: 22px;
+}
+
+.topDelim:hover {
+  color: orange;
+  background-color: orange;
+}
+
+.topDelim:hover + .cmdstack {
+  visibility: visible;
+}
+
+.main {
+}
+
+.helpline {
+  background-color: #FFFFB4;
+  height: 22px;
+}
+
+.filesInRing {
+  position: absolute;
+  top: 70px;
+  left: 400px;
+  width: 300px;
+  background-color: orange;
+  visibility: hidden;
+}
+
+.clearfix:after {
+  content: ".";
+  visibility: hidden;
+  display: block;
+  height: 0;
+  clear: both;
+}

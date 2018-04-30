@@ -2,13 +2,22 @@
 parse arg target opt .
 call trace 'off'
 signal on notready name programEnd
-if opt='' then do forever
-  parse pull input
-  say copyProfileColors(input,target)
-end
-else do forever
-  parse pull input
-  say diffProfileColors(input,target)
+select
+  when target='' then do forever
+    parse pull input
+    if input='' then iterate
+    parse value parseRegistryColorValues(input) with name value
+    say substr(name,11) d2rgb(value) word(input, words(input))
+  end
+  when opt='' then do forever
+    parse pull input
+    say copyProfileColors(input,target)
+  end
+  otherwise
+    do forever
+      parse pull input
+      say diffProfileColors(input,target)
+    end
 end
 exit
 
@@ -18,6 +27,21 @@ exit
 parseRegistryColorValues: procedure
   parse arg colortable . val
   return colortable val
+
+d2rgb: procedure
+  arg decval
+  if \datatype(decval,'W') then return ''
+  bluedivisor=2**16
+  greendivisor=2**8
+  greenq=0
+  greenqi=0
+  blueq=decval%bluedivisor    -- int division
+  blueqi=decval//bluedivisor  -- remainder
+  if blueqi>0 then do
+    greenq=blueqi%greendivisor
+    greenqi=blueqi//greendivisor
+  end
+  return left('R='greenqi,6) left('G='greenq,6) left('B='blueq,6)
 
 /* Copy colors from source profile to target profile */
 copyProfileColors: procedure

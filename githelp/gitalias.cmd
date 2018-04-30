@@ -14,6 +14,7 @@ doskey gdr2=echo git diff SHA1 SHA2 -- file
 doskey gl=git log --oneline $*
 doskey glo=git log --pretty=oneline $*
 doskey gl0=git log --oneline $b head -10
+doskey glm=git log --oneline --grep="$*"
 doskey gld=git show $*
 :: Change history for a given file
 doskey glf=git log --follow -p $*
