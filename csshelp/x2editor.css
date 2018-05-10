@@ -19,8 +19,11 @@
 }
 
 .cmdline {
-  border: thin dashed orange;
+  position: absolute;
+  top: 22px;
+  left: 0px;
   height: 22px;
+  visibility: hidden;
 }
 
 .cmdstack {
@@ -53,7 +56,11 @@
   background-color: orange;
 }
 
-.topDelim:hover + .cmdstack {
+.topDelim:hover ~ .cmdline {
+  visibility: visible;
+}
+
+.topDelim:hover ~ .cmdstack {
   visibility: visible;
 }
 
@@ -71,7 +78,27 @@
   left: 400px;
   width: 300px;
   background-color: orange;
+  line-height: 0.8;
   visibility: hidden;
+}
+
+.filesInRingHeader {
+  background-color: gold;
+  text-align: center;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.filesInRingSelected {
+  background-color: #000080;
+  color: gold;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.marked {
+  background-color: magenta;
+  color: white;
 }
 
 .clearfix:after {
