@@ -2,15 +2,16 @@
 parse arg pfx cmds
 select
   when pfx='b' then 'git branch' cmds
-  when pfx='ba' then 'git branch -all'
+  when pfx='ba' then 'git branch --all'
   when pfx='bb' then call switch2branch
   when pfx='cfg' then 'git config --list --show-origin'
   when pfx='ck' then 'git checkout' cmds
   when pfx='com' then call gcommit cmds
   when pfx='df' then 'git diff' cmds
+  when pfx='dh' then call diffByVersion cmds
   when pfx='dfs' then 'git diff --staged' cmds
   when pfx='dft' then 'git difftool' cmds
-  when pfx='l' then 'git log --oneline' cmds
+  when pfx='l' then 'git log --oneline -n' getnum(cmds,10)
   when pfx='la' then 'git log --author="'cmds'"'
   when pfx='ld' then 'git log --since="'cmds'"'
   when pfx='lf' then call fileHistory cmds
@@ -21,6 +22,7 @@ select
   when pfx='pop' then 'git stash pop'
   when pfx='pu' then call push2branch
   when pfx='s' then 'git status' cmds
+  when pfx='ss' then 'git status -s'
   when pfx='so' then 'git show --name-only' cmds
   when pfx='sos' then 'git show --stat --oneline' cmds
   when pfx='st' then 'git stash save'
@@ -102,6 +104,13 @@ fileHistory: procedure
   ADDRESS CMD gcmd
   return
 
+/* Compare versions of a file */
+diffByVersion: procedure
+  parse arg filename v1 v2
+  gcmd='git diff' hd(v1) hd(v2) '--' filename
+  say 'Run' gcmd
+  return
+
 /* Prompt user with question */
 ask: procedure
   parse arg q, useCase
@@ -115,12 +124,37 @@ askYN: procedure
   parse arg q
   return ask(q '(ENTER=Yes)')=''
 
+/* Validate a numerical value and optionally return a default */
+getnum: procedure
+  arg numval, default
+  if \datatype(default,'W') then default=1
+  if datatype(numval,'W') then return numval
+  return default
+
+/* Provide shortcut where "~n" will expand to "HEAD~n" */
+hd: procedure
+  parse arg input
+  select
+    when pos('~', input)=0 then rval=input
+    when input='~'         then rval='HEAD'
+    otherwise rval='HEAD~'toNum(substr(input,2))
+  end
+  return rval
+
+/* Constrain numerical values to a smaller range */
+toNum: procedure
+  arg numval
+  do i=1 to 9
+    if abbrev(numval,i) then return i
+  end i
+  return 1
+
 help: procedure
   say 'g - Alias utility for Git'
   say 'usage: g shortcut parameters'
   say 'shortcuts:'
   parse source . . srcfile .
-  ADDRESS CMD 'grep -i "when "' srcfile '|RXQUEUE'
+  ADDRESS CMD 'grep -i "when pfx"' srcfile '|RXQUEUE'
   do while queued()>0
     parse pull . '=' entry . action
     if entry='' then iterate
