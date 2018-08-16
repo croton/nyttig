@@ -3,10 +3,11 @@ parse arg pfx cmds
 select
   when pfx='b' then 'git branch' cmds
   when pfx='ba' then 'git branch --all'
-  when pfx='bb' then call switch2branch
+  when pfx='bb' then call branchSwitch
   when pfx='cfg' then 'git config --list --show-origin'
   when pfx='ck' then 'git checkout' cmds
-  when pfx='com' then call gcommit cmds
+  when pfx='cm' then call commit 0, cmds
+  when pfx='cma' then call commit 1, cmds
   when pfx='df' then 'git diff' cmds
   when pfx='dh' then call diffByVersion cmds
   when pfx='dfs' then 'git diff --staged' cmds
@@ -14,17 +15,17 @@ select
   when pfx='l' then 'git log --oneline -n' getnum(cmds,10)
   when pfx='la' then 'git log --author="'cmds'"'
   when pfx='ld' then 'git log --since="'cmds'"'
-  when pfx='lf' then call fileHistory cmds
-  when pfx='ll' then 'git log --oneline -n 10' cmds
+  when pfx='lf' then call logByFile cmds
+  when pfx='ll' then call logCustom cmds
   when pfx='ls' then 'git log --oneline --grep="'cmds'"'
   when pfx='master' then 'git fetch origin master'
   when pfx='mastermrg' then 'git merge FETCH_HEAD'
   when pfx='pop' then 'git stash pop'
-  when pfx='pu' then call push2branch
+  when pfx='pu' then call branchEdit
   when pfx='s' then 'git status' cmds
   when pfx='ss' then 'git status -s'
-  when pfx='so' then 'git show --name-only' cmds
-  when pfx='sos' then 'git show --stat --oneline' cmds
+  when pfx='so' then call showByHead '--name-only', cmds
+  when pfx='sos' then call showByHead '--stat --oneline', cmds
   when pfx='st' then 'git stash save'
   when pfx='stl' then 'git stash list'
   when pfx='ui' then 'start git-gui'
@@ -35,18 +36,19 @@ end
 exit
 
 /* Prompt to issue a commit */
-gcommit: procedure
-  parse arg message
+commit: procedure
+  parse arg inclAll, message
   if message='' then do
     say 'Cannot commit with empty message!'
     return
   end
-  gcmd='git commit -m "'message'" -a'
+  if inclAll then gcmd='git commit -m "'message'" -a'
+  else            gcmd='git commit -m "'message'"'
   if askYN(gcmd) then gcmd
   else                say 'Commit cancelled'
   return
 
-switch2branch: procedure expose branches.
+branchSwitch: procedure expose branches.
   call initbranches
   if branches.0=0 then do
     say 'Switch branch? There is only one, current:' branches.CURRENT
@@ -61,7 +63,7 @@ switch2branch: procedure expose branches.
   else ADDRESS CMD 'git checkout' branches.bnum
   return
 
-push2branch: procedure expose branches.
+branchEdit: procedure expose branches.
   call initbranches
   gcmd='git push origin' branches.CURRENT
   if askYN(gcmd) then ADDRESS CMD gcmd
@@ -88,7 +90,7 @@ initbranches: procedure expose branches.
   return
 
 /* View the change history for a given file */
-fileHistory: procedure
+logByFile: procedure
   parse arg filename fromDate patch
   if filename='' then do
     say 'Missing filename [fromDate] [patch]'
@@ -109,6 +111,28 @@ diffByVersion: procedure
   parse arg filename v1 v2
   gcmd='git diff' hd(v1) hd(v2) '--' filename
   say 'Run' gcmd
+  return
+
+/* Run git show with convenience shortcuts for HEAD spec */
+showByHead: procedure
+  parse arg option, sha verbose
+  gcmd='git show' option hd(sha)
+  if verbose<>'' then say gcmd
+  ADDRESS CMD gcmd
+  return
+
+
+/* Show log in custom format */
+logCustom: procedure
+  arg count verbose .
+  gcmd='git log --pretty=format:"%h %aD %s"'
+  if datatype(count,'W') then gcmd=gcmd '-n' count
+  if verbose<>'' then say gcmd
+  ADDRESS CMD gcmd '|RXQUEUE'
+  do while queued()>0
+    parse pull entry
+    say delword(entry,7,1) -- remove timezone
+  end
   return
 
 /* Prompt user with question */
