@@ -10,6 +10,7 @@ select
   when pfx='cma' then call commit 1, cmds
   when pfx='df' then 'git diff' cmds
   when pfx='dh' then call diffByVersion cmds
+  when pfx='dd' then call diffByFile cmds
   when pfx='dfs' then 'git diff --staged' cmds
   when pfx='dft' then 'git difftool' cmds
   when pfx='l' then 'git log --oneline -n' getnum(cmds,10)
@@ -22,8 +23,9 @@ select
   when pfx='mastermrg' then 'git merge FETCH_HEAD'
   when pfx='pop' then 'git stash pop'
   when pfx='pu' then call branchEdit
-  when pfx='s' then 'git status' cmds
-  when pfx='ss' then 'git status -s'
+  when pfx='s' then 'git status -uno' cmds
+  when pfx='ss' then 'git status -s -uno'
+  when pfx='sf' then call showChanged
   when pfx='so' then call showByHead '--name-only', cmds
   when pfx='sos' then call showByHead '--stat --oneline', cmds
   when pfx='st' then 'git stash save'
@@ -111,6 +113,40 @@ diffByVersion: procedure
   parse arg filename v1 v2
   gcmd='git diff' hd(v1) hd(v2) '--' filename
   say 'Run' gcmd
+  return
+
+/* Compare a currently changed file (shows up with git status) */
+diffByFile: procedure
+  parse arg options
+  files.0=0
+  ctr=0
+  gcmd='git status -s -uno'
+  ADDRESS CMD gcmd '|RXQUEUE'
+  do while queued()>0
+    parse pull . entry
+    if entry='' then iterate
+    ctr=ctr+1
+    files.ctr=strip(translate(entry, '\', '/'))
+  end
+  files.0=ctr
+  say 'Diff which file?'
+  do i=1 to files.0
+    say i files.i
+  end i
+  bnum=ask('Enter file number: (1-'files.0') ->')
+  if \datatype(bnum,'W') | bnum<1 | bnum>files.0 then say 'Selection cancelled'
+  else ADDRESS CMD 'git diff' files.bnum
+  return
+
+/* Show changed files from git status, with some filtering */
+showChanged: procedure
+  gcmd='git status -s -uno'
+  ADDRESS CMD gcmd '|RXQUEUE'
+  do while queued()>0
+    parse pull . entry
+    if entry='' then iterate
+    say strip(translate(entry, '\', '/'))
+  end
   return
 
 /* Run git show with convenience shortcuts for HEAD spec */
