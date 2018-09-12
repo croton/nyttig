@@ -1,0 +1,21 @@
+[user]
+        name = Celestino.Pena
+        email = celestino.pena@gmail.com
+
+[color "status"]
+        changed = magenta
+
+[gui]
+        recentrepo = C:/dev/myProject
+
+[diff]
+        tool = winmerge
+
+[difftool]
+        prompt = false
+
+[difftool "winmerge"]
+        name = WinMerge
+        trustExitCode = true
+        cmd = "/C/MyTools/WinMerge/WinMergeU.exe" -u -e $LOCAL $REMOTE
+

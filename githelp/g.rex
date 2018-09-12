@@ -3,6 +3,7 @@ parse arg pfx cmds
 select
   when pfx='b' then 'git branch' cmds
   when pfx='ba' then 'git branch --all'
+  when pfx='bu' then call branchUpstream cmds
   when pfx='bb' then call branchSwitch
   when pfx='cfg' then 'git config --list --show-origin'
   when pfx='ck' then 'git checkout' cmds
@@ -11,6 +12,7 @@ select
   when pfx='df' then 'git diff' cmds
   when pfx='dh' then call diffByVersion cmds
   when pfx='dd' then call diffByFile cmds
+  when pfx='ddt' then call diffByFile cmds '-gui'
   when pfx='dfs' then 'git diff --staged' cmds
   when pfx='dft' then 'git difftool' cmds
   when pfx='l' then 'git log --oneline -n' getnum(cmds,10)
@@ -46,8 +48,7 @@ commit: procedure
   end
   if inclAll then gcmd='git commit -m "'message'" -a'
   else            gcmd='git commit -m "'message'"'
-  if askYN(gcmd) then gcmd
-  else                say 'Commit cancelled'
+  call prompt gcmd
   return
 
 branchSwitch: procedure expose branches.
@@ -65,11 +66,20 @@ branchSwitch: procedure expose branches.
   else ADDRESS CMD 'git checkout' branches.bnum
   return
 
+/* Set the upstream tracking information for a branch */
+branchUpstream: procedure
+  parse arg remoteBranch
+  if remoteBranch='' then do
+    call initbranches
+    gcmd='git branch --set-upstream-to=origin/'branches.CURRENT
+  end
+  else gcmd='git branch --set-upstream-to=origin/'remoteBranch
+  call prompt gcmd
+  return
+
 branchEdit: procedure expose branches.
   call initbranches
-  gcmd='git push origin' branches.CURRENT
-  if askYN(gcmd) then ADDRESS CMD gcmd
-  else                say 'Command cancelled'
+  call prompt 'git push origin' branches.CURRENT
   return
 
 initbranches: procedure expose branches.
@@ -108,34 +118,65 @@ logByFile: procedure
   ADDRESS CMD gcmd
   return
 
-/* Compare versions of a file */
+/* Compare versions of a commit or a single file */
 diffByVersion: procedure
-  parse arg filename v1 v2
-  gcmd='git diff' hd(v1) hd(v2) '--' filename
-  say 'Run' gcmd
+  parse arg v1 v2 filename
+  if v1='' then do
+    say 'Missing parameters: commit1 commit2 [filename]'
+    return
+  end
+  if filename='' then
+    gcmd='git diff' hd(v1) hd(v2)
+  else
+    gcmd='git diff' hd(v1) hd(v2) '--' filename
+  call prompt gcmd
   return
 
 /* Compare a currently changed file (shows up with git status) */
 diffByFile: procedure
-  parse arg options
+  parse arg sha
+  w=wordpos('-gui',sha)
+  if w>0 then do; useGUI=1; sha=delword(sha,w,1); end; else useGUI=0
   files.0=0
   ctr=0
-  gcmd='git status -s -uno'
-  ADDRESS CMD gcmd '|RXQUEUE'
-  do while queued()>0
-    parse pull . entry
-    if entry='' then iterate
-    ctr=ctr+1
-    files.ctr=strip(translate(entry, '\', '/'))
+  refSha=''
+  if sha='' then do
+    gcmd='git status -s -uno'
+    ADDRESS CMD gcmd '|RXQUEUE'
+    do while queued()>0
+      parse pull . entry
+      if entry='' then iterate
+      ctr=ctr+1
+      files.ctr=strip(translate(entry, '\', '/'))
+    end
+  end
+  else do
+    refSha=hd(sha)
+    gcmd='git show --abbrev-commit --name-only --pretty=oneline' refSha
+    ADDRESS CMD gcmd '|RXQUEUE'
+    pull . -- ignore first line
+    do while queued()>0
+      parse pull . 'src/' entry
+      if entry='' then iterate
+      ctr=ctr+1
+      files.ctr=strip(translate(entry, '\', '/'))
+    end
   end
   files.0=ctr
   say 'Diff which file?'
+  say gcmd
   do i=1 to files.0
     say i files.i
   end i
   bnum=ask('Enter file number: (1-'files.0') ->')
   if \datatype(bnum,'W') | bnum<1 | bnum>files.0 then say 'Selection cancelled'
-  else ADDRESS CMD 'git diff' files.bnum
+  else do
+    if useGUI then gcmd='git difftool'
+    else           gcmd='git diff'
+    if sha='' then params=files.bnum
+    else           params=refSha 'HEAD --' files.bnum
+    call prompt gcmd params
+  end
   return
 
 /* Show changed files from git status, with some filtering */
@@ -157,19 +198,32 @@ showByHead: procedure
   ADDRESS CMD gcmd
   return
 
-
 /* Show log in custom format */
 logCustom: procedure
-  arg count verbose .
+  parse arg params
   gcmd='git log --pretty=format:"%h %aD %s"'
-  if datatype(count,'W') then gcmd=gcmd '-n' count
-  if verbose<>'' then say gcmd
-  ADDRESS CMD gcmd '|RXQUEUE'
-  do while queued()>0
-    parse pull entry
-    say delword(entry,7,1) -- remove timezone
+  if params='' then gcmd=gcmd '-n 10'
+  else              gcmd=gcmd translateLogArgs(params)
+  if askYN(gcmd) then do
+    ADDRESS CMD gcmd '|RXQUEUE'
+    do while queued()>0
+      parse pull entry
+      say delword(entry,7,1) -- remove timezone
+    end
   end
+  else say 'Command cancelled'
   return
+
+/* Provide convenient substitutions for git log options */
+translateLogArgs: procedure
+  parse arg options
+  w=wordpos('-s',options)
+  if w>0 then do; since=word(options,w+1); options=delword(options,w,2); end; else since=''
+  w=wordpos('-a',options)
+  if w>0 then do; author=word(options,w+1); options=delword(options,w,2); end; else author=''
+  if since<>'' then options=options '--since="'since'"'
+  if author<>'' then options=options '--author="'author'"'
+  return strip(options)
 
 /* Prompt user with question */
 ask: procedure
@@ -183,6 +237,13 @@ ask: procedure
 askYN: procedure
   parse arg q
   return ask(q '(ENTER=Yes)')=''
+
+/* Prompt user to run a given command */
+prompt: procedure
+  parse arg gcmd
+  if askYN(gcmd) then ADDRESS CMD gcmd
+  else                say 'Command cancelled'
+  return
 
 /* Validate a numerical value and optionally return a default */
 getnum: procedure

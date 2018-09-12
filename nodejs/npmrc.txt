@@ -1,0 +1,6 @@
+# Reset npm config vars 'prefix' and 'cache'
+# npm config set prefix 'new-value'
+# Ensure prefix is on path
+prefix=c:\MyTools\nodecfg\npm
+cache=c:\MyTools\nodecfg\npm\cache
+userconfig=c:\cjp\.npmrc
