@@ -1,6 +1,7 @@
 /* g -- Alias utility for git */
 parse arg pfx cmds
 select
+  when pfx='a' then call add2stage cmds
   when pfx='b' then 'git branch' cmds
   when pfx='ba' then 'git branch --all'
   when pfx='bu' then call branchUpstream cmds
@@ -9,6 +10,8 @@ select
   when pfx='ck' then 'git checkout' cmds
   when pfx='cm' then call commit 0, cmds
   when pfx='cma' then call commit 1, cmds
+  when pfx='cmf' then call commit 0, '#F' cmds
+  when pfx='cmm' then call commit 0, '#M' cmds
   when pfx='df' then 'git diff' cmds
   when pfx='dh' then call diffByVersion cmds
   when pfx='dd' then call diffByFile cmds
@@ -16,21 +19,17 @@ select
   when pfx='dfs' then 'git diff --staged' cmds
   when pfx='dft' then 'git difftool' cmds
   when pfx='l' then 'git log --oneline -n' getnum(cmds,10)
-  when pfx='la' then 'git log --author="'cmds'"'
-  when pfx='ld' then 'git log --since="'cmds'"'
   when pfx='lf' then call logByFile cmds
   when pfx='ll' then call logCustom cmds
   when pfx='ls' then 'git log --oneline --grep="'cmds'"'
-  when pfx='master' then 'git fetch origin master'
-  when pfx='mastermrg' then 'git merge FETCH_HEAD'
-  when pfx='pop' then 'git stash pop'
   when pfx='pu' then call branchEdit
   when pfx='s' then 'git status -uno' cmds
   when pfx='ss' then 'git status -s -uno'
-  when pfx='sf' then call showChanged
+  when pfx='sf' then call showChanged cmds
   when pfx='so' then call showByHead '--name-only', cmds
   when pfx='sos' then call showByHead '--stat --oneline', cmds
   when pfx='st' then 'git stash save'
+  when pfx='stp' then 'git stash pop'
   when pfx='stl' then 'git stash list'
   when pfx='ui' then 'start git-gui'
   when pfx='xstage' then 'git reset HEAD' cmds
@@ -38,6 +37,35 @@ select
   otherwise call help
 end
 exit
+
+/* Prompt to stage files among those currently modified */
+add2stage: procedure
+  parse arg options
+  gcmd='git status -s -uno'
+  ADDRESS CMD gcmd '|RXQUEUE'
+  ctr=0
+  do while queued()>0
+    parse pull . entry
+    if entry='' then iterate
+    ctr=ctr+1
+    files.ctr=strip(translate(entry, '\', '/'))
+  end
+  files.0=ctr
+  if ctr=0 then do
+    say 'No files to stage!'
+    return
+  end
+  say 'Add which file(s) to stage?'
+  do i=1 to files.0
+    say i files.i
+  end i
+  fnums=ask('Enter file number(s): (1-'files.0') ->')
+  do w=1 to words(fnums)
+    idx=word(fnums,w)
+    if \datatype(idx,'W') | idx<1 | idx>files.0 then iterate
+    call prompt 'git add' files.idx
+  end w
+  return
 
 /* Prompt to issue a commit */
 commit: procedure
@@ -111,11 +139,10 @@ logByFile: procedure
   if fromDate='' | fromDate='.' then
     gcmd='git log --pretty=format:"%h %aD: %s" --follow'
   else
-    gcmd='git log --pretty=format:"%h %aD: %s" --since="'fromDate'" --follow'
+    gcmd='git log --pretty=format:"%h %aD: %s"' translateLogArgs('-d' fromDate) '--follow'
   if patch='' then gcmd=gcmd filename
   else             gcmd=gcmd '-p' filename
-  say gcmd
-  ADDRESS CMD gcmd
+  call prompt gcmd
   return
 
 /* Compare versions of a commit or a single file */
@@ -162,6 +189,10 @@ diffByFile: procedure
       files.ctr=strip(translate(entry, '\', '/'))
     end
   end
+  if ctr=0 then do
+    say 'No files to diff:' gcmd
+    return
+  end
   files.0=ctr
   say 'Diff which file?'
   say gcmd
@@ -181,12 +212,27 @@ diffByFile: procedure
 
 /* Show changed files from git status, with some filtering */
 showChanged: procedure
-  gcmd='git status -s -uno'
-  ADDRESS CMD gcmd '|RXQUEUE'
-  do while queued()>0
-    parse pull . entry
-    if entry='' then iterate
-    say strip(translate(entry, '\', '/'))
+  parse arg sha
+  if sha='' then do
+    gcmd='git status -s -uno'
+    ADDRESS CMD gcmd '|RXQUEUE'
+    do while queued()>0
+      parse pull . entry
+      if entry='' then iterate
+      say strip(translate(entry, '\', '/'))
+    end
+  end
+  else do
+    refSha=hd(sha)
+    gcmd='git show --abbrev-commit --name-only --pretty=oneline' refSha
+    ADDRESS CMD gcmd '|RXQUEUE'
+    parse pull comment
+    say comment
+    do while queued()>0
+      parse pull . 'src/' entry
+      if entry='' then iterate
+      say strip(translate(entry, '\', '/'))
+    end
   end
   return
 
@@ -202,8 +248,11 @@ showByHead: procedure
 logCustom: procedure
   parse arg params
   gcmd='git log --pretty=format:"%h %aD %s"'
-  if params='' then gcmd=gcmd '-n 10'
-  else              gcmd=gcmd translateLogArgs(params)
+  if params='' then do
+    say 'Missing parameters: [log-options][-d date-expr][-a author]'
+    return
+  end
+  gcmd=gcmd translateLogArgs(params)
   if askYN(gcmd) then do
     ADDRESS CMD gcmd '|RXQUEUE'
     do while queued()>0
@@ -214,14 +263,22 @@ logCustom: procedure
   else say 'Command cancelled'
   return
 
+/* --------------------------- Private Functions ---------------------------- */
 /* Provide convenient substitutions for git log options */
 translateLogArgs: procedure
   parse arg options
-  w=wordpos('-s',options)
+  w=wordpos('-d',options)
   if w>0 then do; since=word(options,w+1); options=delword(options,w,2); end; else since=''
   w=wordpos('-a',options)
   if w>0 then do; author=word(options,w+1); options=delword(options,w,2); end; else author=''
-  if since<>'' then options=options '--since="'since'"'
+  if since<>'' then do
+    datestr='yesterday'
+    if verify(since, '0123456789')=0 then do
+      if length(since)=8 then datestr=translate('Mm/Dd/CcYy', since, 'CcYyMmDd')
+      else if length(since)<=3 then datestr=since 'days'
+    end
+    options=options '--since="'datestr'"'
+  end
   if author<>'' then options=options '--author="'author'"'
   return strip(options)
 

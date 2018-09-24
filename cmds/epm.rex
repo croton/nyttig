@@ -6,6 +6,7 @@ select
   when option='a' then call load filenames, 'NG'
   when option='c' then call load filenames, 'CSS'
   when option='m' then call load filenames, 'MD'
+  when option='mo' then call load filenames, 'MOCHA'
   when option='n' then call load filenames, 'NODEJS'
   when option='t' then call load filenames, 'TSCRIPT'
   otherwise call load filenames
@@ -31,12 +32,13 @@ parseSwitch: procedure
 
 load: procedure
   parse arg filenames, profile
-  xcmd='start "X2" cmd /C "title X2 & x' strip(filenames)'"'
+  winprof='Tall'
+  xcmd='start "'winprof'" cmd /C "title X2 & x' strip(filenames)'"'
   /* xcmd='x' filenames */
   if profile='' then ADDRESS CMD xcmd
   else do
     profilepath=value('X2HOME',,'ENVIRONMENT')||'\'profile'.PRO'
-    if SysFileExists(profilepath) then xcmd='start "X2" cmd /C "x -P'profilepath strip(filenames)'"'
+    if SysFileExists(profilepath) then xcmd='start "'winprof'" cmd /C "x -P'profilepath strip(filenames)'"'
     /* xcmd='x -P'profilepath filenames */
     ADDRESS CMD xcmd
   end
@@ -45,5 +47,12 @@ load: procedure
 help:
   say 'epm - X2 editor'
   say 'usage: epm [-profile] [files]'
+  say 'profiles:'
+  parse source . . srcfile .
+  ADDRESS CMD 'grep -i "when option"' srcfile '|RXQUEUE'
+  do while queued()>0
+    parse pull . '=' entry . action
+    if entry='' then iterate
+    say ' ' left(entry, 12, '.') word(action, words(action))
+  end
   exit
-
