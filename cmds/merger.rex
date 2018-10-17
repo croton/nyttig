@@ -8,7 +8,6 @@ end
 -- Open and check the files
 do while lines(fin)<>0
   line=linein(fin)
-  if line='' then iterate
   say merge(line, values)
 end
 call lineout fin -- close the file
@@ -25,7 +24,9 @@ exit
 merge: procedure
   parse arg template, tokens, ph
   if ph='' then ph='?'
+  pha=ph'*'  -- for inserting all values in one placeholder
   if pos(ph, template)=0 then return template
+  if pos(pha, template)>0 then return changestr(pha, template , tokens)
   line=template
   delim=left(tokens, 1)
   if delim='#' | delim='~' then do

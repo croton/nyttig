@@ -1,11 +1,12 @@
 /* g -- Alias utility for git */
 parse arg pfx cmds
 select
-  when pfx='a' then call add2stage cmds
+  when pfx='a' then call stageChange
   when pfx='b' then 'git branch' cmds
-  when pfx='ba' then 'git branch --all'
+  when pfx='bc' then 'git branch|grep -e "^\*"'
+  when pfx='bb' then call branchSwitch cmds
+  when pfx='bd' then 'git branch --sort=-committerdate -v'
   when pfx='bu' then call branchUpstream cmds
-  when pfx='bb' then call branchSwitch
   when pfx='cfg' then 'git config --list --show-origin'
   when pfx='ck' then 'git checkout' cmds
   when pfx='cm' then call commit 0, cmds
@@ -15,14 +16,18 @@ select
   when pfx='df' then 'git diff' cmds
   when pfx='dh' then call diffByVersion cmds
   when pfx='dd' then call diffByFile cmds
-  when pfx='ddt' then call diffByFile cmds '-gui'
+  when pfx='ddt' then call diffByFile cmds, 'GUI'
   when pfx='dfs' then 'git diff --staged' cmds
   when pfx='dft' then 'git difftool' cmds
   when pfx='l' then 'git log --oneline -n' getnum(cmds,10)
   when pfx='lf' then call logByFile cmds
   when pfx='ll' then call logCustom cmds
   when pfx='ls' then 'git log --oneline --grep="'cmds'"'
+  when pfx='m' then call prompt 'git checkout master'
+  when pfx='mr' then call mergeRequest
   when pfx='pu' then call branchEdit
+  when pfx='pl' then call branchEdit 'PULL'
+  when pfx='r' then call rollbackChange
   when pfx='s' then 'git status -uno' cmds
   when pfx='ss' then 'git status -s -uno'
   when pfx='sf' then call showChanged cmds
@@ -38,33 +43,14 @@ select
 end
 exit
 
+/* Prompt to roll back changes among files currently modified */
+rollbackChange: procedure
+  call applyCmd2ChangedFiles 'git checkout', 'Roll back changes to which file(s)?'
+  return
+
 /* Prompt to stage files among those currently modified */
-add2stage: procedure
-  parse arg options
-  gcmd='git status -s -uno'
-  ADDRESS CMD gcmd '|RXQUEUE'
-  ctr=0
-  do while queued()>0
-    parse pull . entry
-    if entry='' then iterate
-    ctr=ctr+1
-    files.ctr=strip(translate(entry, '\', '/'))
-  end
-  files.0=ctr
-  if ctr=0 then do
-    say 'No files to stage!'
-    return
-  end
-  say 'Add which file(s) to stage?'
-  do i=1 to files.0
-    say i files.i
-  end i
-  fnums=ask('Enter file number(s): (1-'files.0') ->')
-  do w=1 to words(fnums)
-    idx=word(fnums,w)
-    if \datatype(idx,'W') | idx<1 | idx>files.0 then iterate
-    call prompt 'git add' files.idx
-  end w
+stageChange: procedure
+  call applyCmd2ChangedFiles 'git add', 'Add which file(s) to stage?'
   return
 
 /* Prompt to issue a commit */
@@ -80,12 +66,26 @@ commit: procedure
   return
 
 branchSwitch: procedure expose branches.
+  parse arg filter
   call initbranches
   if branches.0=0 then do
     say 'Switch branch? There is only one, current:' branches.CURRENT
     return
   end
-  say 'Switch to which branch? (current='branches.CURRENT')'
+  currbranch=branches.CURRENT
+  if filter<>'' then do
+    ctr=0
+    do i=1 to branches.0
+      if pos(filter, branches.i)=0 then iterate
+      ctr=ctr+1
+      selbranch.ctr=branches.i
+    end i
+    if ctr>0 then do
+      selbranch.0=ctr
+      branches.=selbranch.
+    end
+  end
+  say 'Switch to which branch? (current='currbranch')'
   do i=1 to branches.0
     say i branches.i
   end i
@@ -106,8 +106,11 @@ branchUpstream: procedure
   return
 
 branchEdit: procedure expose branches.
+  arg method
+  if abbrev('PUSH', method) then method='git push'
+  else                           method='git pull'
   call initbranches
-  call prompt 'git push origin' branches.CURRENT
+  call prompt method 'origin' branches.CURRENT
   return
 
 initbranches: procedure expose branches.
@@ -161,22 +164,10 @@ diffByVersion: procedure
 
 /* Compare a currently changed file (shows up with git status) */
 diffByFile: procedure
-  parse arg sha
-  w=wordpos('-gui',sha)
-  if w>0 then do; useGUI=1; sha=delword(sha,w,1); end; else useGUI=0
-  files.0=0
-  ctr=0
-  refSha=''
-  if sha='' then do
-    gcmd='git status -s -uno'
-    ADDRESS CMD gcmd '|RXQUEUE'
-    do while queued()>0
-      parse pull . entry
-      if entry='' then iterate
-      ctr=ctr+1
-      files.ctr=strip(translate(entry, '\', '/'))
-    end
-  end
+  parse arg sha, useGUI
+  if useGUI='' then useGUI=0
+  else              useGUI=1
+  if sha='' then files.=queryChangedfiles()
   else do
     refSha=hd(sha)
     gcmd='git show --abbrev-commit --name-only --pretty=oneline' refSha
@@ -188,14 +179,13 @@ diffByFile: procedure
       ctr=ctr+1
       files.ctr=strip(translate(entry, '\', '/'))
     end
+    files.0=ctr
   end
-  if ctr=0 then do
-    say 'No files to diff:' gcmd
+  if files.0=0 then do
+    say 'No files to diff' sha
     return
   end
-  files.0=ctr
   say 'Diff which file?'
-  say gcmd
   do i=1 to files.0
     say i files.i
   end i
@@ -206,7 +196,7 @@ diffByFile: procedure
     else           gcmd='git diff'
     if sha='' then params=files.bnum
     else           params=refSha 'HEAD --' files.bnum
-    call prompt gcmd params
+    ADDRESS CMD gcmd params
   end
   return
 
@@ -214,13 +204,10 @@ diffByFile: procedure
 showChanged: procedure
   parse arg sha
   if sha='' then do
-    gcmd='git status -s -uno'
-    ADDRESS CMD gcmd '|RXQUEUE'
-    do while queued()>0
-      parse pull . entry
-      if entry='' then iterate
-      say strip(translate(entry, '\', '/'))
-    end
+    files.=queryChangedfiles()
+    do i=1 to files.0
+      say files.i
+    end i
   end
   else do
     refSha=hd(sha)
@@ -263,7 +250,87 @@ logCustom: procedure
   else say 'Command cancelled'
   return
 
+/* Run commands for each merge request */
+-- For each merge request-ch to master,git pull, ch to my branch, git merge master
+mergeRequest: procedure
+  parse arg options
+  call initbranches
+  gcmds.1='git checkout master'
+  gcmds.2='git pull'
+  gcmds.3='git checkout' branches.CURRENT
+  gcmds.4='git merge master'
+  gcmds.0=4
+  do i=1 to gcmds.0
+    rco=prompt(gcmds.i)
+    say gcmds.i 'RC='rco
+    if rco<>0 then do
+      say 'Error occurred on last command; now leaving.'
+      leave i
+    end
+  end i
+  return
+
 /* --------------------------- Private Functions ---------------------------- */
+
+/* Prompt to roll back changes among files currently modified */
+applyCmd2ChangedFiles: procedure
+  parse arg gcmd, promptMessage
+  changed.=queryChangedfiles()
+  if changed.0=0 then do
+    say 'No changed files present!'
+    return
+  end
+  if promptMessage='' then say 'Apply "'gcmd'" to which file(s)?'
+  else                     say promptMessage
+  call applyCmd gcmd, changed.
+  return
+
+/* Run a git command which would return a list of files */
+queryChangedfiles: procedure
+  gcmd='git status -s -uno'
+  ADDRESS CMD gcmd '|RXQUEUE'
+  ctr=0
+  do while queued()>0
+    parse pull . entry
+    if entry='' then iterate
+    ctr=ctr+1
+    files.ctr=strip(translate(entry, '\', '/'))
+  end
+  files.0=ctr
+  return files.
+
+/* Run a specified command on a list of files */
+applyCmd: procedure
+  use arg gcmd, files.
+  do i=1 to files.0
+    say i files.i
+  end i
+  fnums=getSelections('Enter file number(s): (1-'files.0') ->', files.0)
+  do w=1 to words(fnums)
+    idx=word(fnums,w)
+    call prompt gcmd files.idx
+  end w
+  return
+
+/* Prompt for one or more numbers and handle hyphens to indicate a range */
+getSelections: procedure
+  parse arg message, maxnum
+  numlist=''
+  reply=ask(message)
+  do w=1 to words(reply)
+    idx=word(reply,w)
+    if datatype(idx,'W') & idx>0 & idx<=maxnum then numlist=numlist idx
+    else if pos('-', idx)>0 then do
+      -- parse a range of numbers
+      parse var idx startnum '-' endnum
+      if datatype(startnum,'W') & datatype(endnum,'W') then
+      do r=startnum to endnum
+        numlist=numlist r
+      end r
+    end
+  end w
+  return numlist
+
 /* Provide convenient substitutions for git log options */
 translateLogArgs: procedure
   parse arg options
@@ -298,9 +365,13 @@ askYN: procedure
 /* Prompt user to run a given command */
 prompt: procedure
   parse arg gcmd
-  if askYN(gcmd) then ADDRESS CMD gcmd
-  else                say 'Command cancelled'
-  return
+  rcode=-1
+  if askYN(gcmd) then do
+    ADDRESS CMD gcmd
+    rcode=rc
+  end
+  else say 'Command cancelled'
+  return rcode
 
 /* Validate a numerical value and optionally return a default */
 getnum: procedure
@@ -328,7 +399,7 @@ toNum: procedure
   return 1
 
 help: procedure
-  say 'g - Alias utility for Git'
+  say 'g - Alias utility for Git, version' 0.62
   say 'usage: g shortcut parameters'
   say 'shortcuts:'
   parse source . . srcfile .
