@@ -89,16 +89,34 @@
   end
   return rcode
 
-/* Run a specified command on each of the selections from a list */
+/* Run a specified command on each of the selections from a stem */
 ::routine applyCmd public
   use arg xcmd, items.
   do i=1 to items.0
     say i items.i
   end i
-  fnums=getSelections('Enter file number(s): (1-'items.0') ->', items.0)
+  fnums=getSelections('Enter item number(s): (1-'items.0') ->', items.0)
   do w=1 to words(fnums)
     idx=word(fnums,w)
     call prompt xcmd items.idx
+  end w
+  return
+
+/* Run a specified command on each of the selections from a list */
+::routine applyCmd2Choices public
+  use arg xcmd, items, doPrompt
+  totalItems=items~size
+  do i=1 to totalItems
+    say i items[i]
+  end i
+  fnums=getSelections('Enter item number(s): (1-'totalItems') ->', totalItems)
+  if doPrompt=1 then do w=1 to words(fnums)
+    idx=word(fnums,w)
+    call prompt xcmd items[idx]
+  end w
+  else do w=1 to words(fnums)
+    idx=word(fnums,w)
+    call runcmd xcmd items[idx]
   end w
   return
 

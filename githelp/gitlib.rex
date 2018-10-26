@@ -1,5 +1,7 @@
+::requires 'UtilRoutines.rex'
+
 ::routine version public
-  return '0.1'
+  return '0.11'
 
 ::routine getBranch public
   currBranch=''
@@ -31,6 +33,36 @@
   end
   branches.0=ctr
   return branches.
+
+::routine pickBranch public
+  parse arg filter
+  branches.=getBranches()
+  if branches.0=0 then do
+    say 'Switch branch? There is only one, current:' branches.CURRENT
+    return -1
+  end
+  currbranch=branches.CURRENT
+  if filter<>'' then do
+    ctr=0
+    do i=1 to branches.0
+      if pos(filter, branches.i)=0 then iterate
+      ctr=ctr+1
+      selbranch.ctr=branches.i
+    end i
+    if ctr>0 then do
+      selbranch.0=ctr
+      branches.=selbranch.
+    end
+  end
+  say 'Switch to which branch? (current='currbranch')'
+  return applyCmd2Item('git checkout', branches.)
+
+::routine changeBranch public
+  parse arg branchname
+  if branchname='' then return -1
+  gcmd='git checkout' branchname
+  ADDRESS CMD gcmd
+  return rc
 
 /* Prompt to roll back changes among files currently modified */
 ::routine applyCmd2ChangedFiles public
@@ -79,10 +111,11 @@
 
 /* Provide shortcut where "~n" will expand to "HEAD~n" */
 ::routine hd public
-  parse arg input
+  parse arg input, prefix
+  if prefix='' then prefix='~'
   select
-    when pos('~', input)=0 then rval=input
-    when input='~'         then rval='HEAD'
+    when pos(prefix, input)=0 then rval=input
+    when input=prefix         then rval='HEAD'
     otherwise rval='HEAD~'toNum(substr(input,2))
   end
   return rval

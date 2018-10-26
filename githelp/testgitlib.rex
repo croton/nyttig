@@ -14,17 +14,34 @@ do forever
     when gcmd='help' then call help
     when gcmd='br' then call showVisitedBranches
     when gcmd='bn' then call addBranch params
-    when gcmd='bb' then call branchSwitch cmds
-    when gcmd='choice' then call testChoice cmds
+    when gcmd='hd' then call testHead params
+    when gcmd='choice' then call testChoice params
     when gcmd='rx' then interpret 'say' params
     otherwise call runcmd gcmd params
   end
 end
 exit
 
-testChoice: procedure
+testChoice: procedure expose VISITEDBRANCH
   parse arg stuff
-  call applyCmd2Choice 'echo You picked this fish:', .array~of('golden trout','arctic char','black nosed dace','johnny darter')
+  fish=.array~of('golden trout','arctic char','black nosed dace','johnny darter')
+  bugs=.array~of('backswimmer','giant water bug','water strider','water boatman','leaf hopper','cicada')
+  say 'Pick one from these fish:'
+  call applyCmd2Choice 'echo You picked this fish:', fish
+  say 'Pick from these bugs:'
+  call applyCmd2Choices 'echo You picked this bug', bugs
+  say 'Pick from these bugs (WITH prompting):'
+  call applyCmd2Choices 'echo You picked these bugs?', bugs, 1
+  if VISITEDBRANCH~items>0 then do
+    say 'Pick one from these visited branches:'
+    call applyCmd2Choice 'echo You picked this branch (among those already visited):', VISITEDBRANCH~makeArray
+  end
+  return
+
+testHead: procedure
+  parse arg params
+  say 'Input' params 'expands to' hd(params)
+  say 'Input' params '(using "-" as prefix) expands to' hd(params, '-')
   return
 
 showprompt: procedure
@@ -40,12 +57,13 @@ showVisitedBranches: procedure expose VISITEDBRANCH
   ctr=0
   loop item over VISITEDBRANCH
     ctr=ctr+1
-    say ctr 'branch' item
+    say ctr item
   end
   return
 
 syntax:
-  say 'There has been a syntax anomaly. Please look into it at once.'
+  say 'There has been a syntax anomaly originated from line' SIGL'.'
+  say 'Please look into it at once.'
   return
 
 help: procedure

@@ -1,9 +1,12 @@
 /* gcmd -- Interactive shell for git shortcuts. */
 call trace 'off'
-signal on notready name programEnd
-ctr=0
+SIGNAL ON NOTREADY NAME programEnd
 CURRBRANCH=getBranch()
-VISITEDBRANCH=.Set~new
+VISITEDBRANCH=.Set~of(CURRBRANCH)
+LASTCMD=''
+call help
+
+ctr=0
 do forever
   ctr=ctr+1
   call charout , showprompt()
@@ -15,11 +18,13 @@ do forever
     end
     when gcmd='help' then call help
     when gcmd='.' then call runLastCmd
-    when gcmd='b' then call changeBranch params
+    when gcmd='b' then call switchBranch params
     when gcmd='br' then call showVisitedBranches
-    when gcmd='m' then call changeBranch 'master'
+    when gcmd='m' then call switchBranch 'master'
     when gcmd='rx' then interpret 'say' params
-    otherwise call runcmd gcmd params
+    otherwise
+      call runcmd gcmd params
+      call updateBranch  -- Update branch in case it was modified
   end
 end
 exit
@@ -33,51 +38,32 @@ updateBranch: procedure expose CURRBRANCH VISITEDBRANCH
   if CURRBRANCH<>lastBranch then do
     CURRBRANCH=lastBranch
     VISITEDBRANCH~put(lastBranch)
+    say "Today's visited branches:"
+    call showVisitedBranches
   end
-  return
-
-/* Pass a command to the external environment */
-runcmd: procedure expose CURRBRANCH VISITEDBRANCH
-  parse arg gcmd params
-  if gcmd='' then return
-  -- say 'Running' gcmd params
-  ADDRESS CMD gcmd params
-  .environment['LASTCMD']=gcmd params
-  -- Update branch in case it was modified
-  call updateBranch
   return
 
 runLastCmd: procedure expose CURRBRANCH
   parse arg options
-  lastone=.environment['LASTCMD']
-  if lastone=.NIL then say 'No previous command available'
+  if LASTCMD='' then say 'No previous command available'
   else do
-    if askYN('Run' lastone'?') then ADDRESS CMD lastone
-    -- Update branch in case it was modified
+    if askYN('Run' LASTCMD'?') then ADDRESS CMD LASTCMD
     call updateBranch
-    -- CURRBRANCH=getBranch()
   end
   return
 
-changeBranch: procedure expose CURRBRANCH VISITEDBRANCH
+switchBranch: procedure expose CURRBRANCH VISITEDBRANCH
   parse arg branchname
-  gcmd='git checkout' branchname
-  ADDRESS CMD gcmd
-  rcode=rc
-  call updateBranch
-  -- CURRBRANCH=getBranch()
-  return rcode
-
-getBranch: procedure
-  currBranch=''
-  ADDRESS CMD 'git branch |RXQUEUE'
-  do while queued()>0
-    parse pull entry
-    if left(entry,1)='*' then currBranch=word(entry, 2)
-  end
-  return currBranch
+  if branchname='' then
+    rcode=pickBranch()
+  else
+    rcode=changeBranch(branchname)
+  if rcode=0 then call updateBranch
+  else say 'Problem changing branch:' rcode
+  return
 
 showVisitedBranches: procedure expose VISITEDBRANCH
+  say "Today's visited branches:"
   ctr=0
   loop item over VISITEDBRANCH
     ctr=ctr+1
@@ -86,7 +72,7 @@ showVisitedBranches: procedure expose VISITEDBRANCH
   return
 
 help: procedure
-  say 'gitr -- An interactive git shell, version' 0.1
+  say 'gitr -- An interactive git shell, version' 0.11
   say 'Type EXIT to leave.'
   say 'commands:'
   parse source . . srcfile .
@@ -98,3 +84,4 @@ programEnd:
   exit 0
 
 ::requires 'UtilRoutines.rex'
+::requires 'gitlib.rex'
