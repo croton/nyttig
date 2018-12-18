@@ -1,7 +1,7 @@
 ::requires 'UtilRoutines.rex'
 
 ::routine version public
-  return '0.11'
+  return '0.13'
 
 ::routine getBranch public
   currBranch=''
@@ -63,6 +63,29 @@
   gcmd='git checkout' branchname
   ADDRESS CMD gcmd
   return rc
+
+/* Prompt user with a selection of file revisions to compare */
+::routine compareCommits public
+  parse arg fspec useTool
+  fn=pickFile(fspec)
+  if fn='' then say 'No file specified'
+  else do
+    gcmd='git log --pretty=format:"%h %s" -n 10 --follow' fn
+    output=cmdOut(gcmd)
+    if output~items>0 then do
+      parse value pickIndexes(output) with idx1 idx2
+      if \(datatype(idx1,'W') & datatype(idx2,'W')) then say 'Comparison cancelled'
+      else do
+        if useTool='' then
+          gcmd='git diff' word(output[idx1], 1) word(output[idx2],1) '--' fn
+        else
+          gcmd='git difftool' word(output[idx1], 1) word(output[idx2],1) '--' fn
+        call prompt gcmd
+      end
+    end
+    else say 'No log history:' gcmd
+  end
+  return
 
 /* Prompt to roll back changes among files currently modified */
 ::routine applyCmd2ChangedFiles public

@@ -21,6 +21,8 @@ do forever
     when gcmd='b' then call switchBranch params
     when gcmd='br' then call showVisitedBranches
     when gcmd='m' then call switchBranch 'master'
+    when gcmd='dh' then call compareCommits params
+    when gcmd='dht' then call compareCommits params 'difftool'
     when gcmd='rx' then interpret 'say' params
     otherwise
       call runcmd gcmd params
@@ -38,7 +40,6 @@ updateBranch: procedure expose CURRBRANCH VISITEDBRANCH
   if CURRBRANCH<>lastBranch then do
     CURRBRANCH=lastBranch
     VISITEDBRANCH~put(lastBranch)
-    say "Today's visited branches:"
     call showVisitedBranches
   end
   return
