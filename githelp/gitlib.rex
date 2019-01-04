@@ -64,11 +64,41 @@
   ADDRESS CMD gcmd
   return rc
 
+::routine viewfile public
+  parse arg fspec rev
+  fn=pickFile(fspec)
+  gcmd=''
+  if fn='' then say 'No file specified'
+  else do
+    fnt=translate(fn, '/', '\')
+    if rev='' then gcmd='git show' fnt
+    else           gcmd='git show' hd(rev)':'fnt
+    call prompt gcmd
+  end
+  return gcmd
+
+::routine compareAdjacentCommits public
+  parse arg fspec rev
+  fn=pickFile(fspec)
+  gcmd=''
+  if fn='' then say 'No file specified'
+  else do
+    fnt=translate(fn, '/', '\')
+    headOffset=toNum(rev)
+    if rev='' then gcmd='git diff HEAD~1 HEAD --' fn
+    else           gcmd='git diff' hd('~'headOffset+1) hd('~'headOffset) '--' fn
+    call prompt gcmd
+  end
+  return gcmd
+
 /* Prompt user with a selection of file revisions to compare */
 ::routine compareCommits public
   parse arg fspec useTool
   fn=pickFile(fspec)
-  if fn='' then say 'No file specified'
+  if fn='' then do
+    say 'No file specified'
+    return ''
+  end
   else do
     gcmd='git log --pretty=format:"%h %s" -n 10 --follow' fn
     output=cmdOut(gcmd)
@@ -77,15 +107,15 @@
       if \(datatype(idx1,'W') & datatype(idx2,'W')) then say 'Comparison cancelled'
       else do
         if useTool='' then
-          gcmd='git diff' word(output[idx1], 1) word(output[idx2],1) '--' fn
+          gcmd='git diff' word(output[idx1],1) word(output[idx2],1) '--' fn
         else
-          gcmd='git difftool' word(output[idx1], 1) word(output[idx2],1) '--' fn
+          gcmd='git difftool' word(output[idx1],1) word(output[idx2],1) '--' fn
         call prompt gcmd
       end
     end
     else say 'No log history:' gcmd
   end
-  return
+  return gcmd
 
 /* Prompt to roll back changes among files currently modified */
 ::routine applyCmd2ChangedFiles public
@@ -145,9 +175,8 @@
 
 /* Constrain numerical values to a smaller range */
 ::routine toNum public
-  arg numval
-  do i=1 to 9
-    if abbrev(numval,i) then return i
-  end i
+  arg numval, maxval
+  if \datatype(maxval,'W') then maxval=20
+  if datatype(numval,'W') & numval<=maxval then return numval
   return 1
 

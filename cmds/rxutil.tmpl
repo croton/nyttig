@@ -1,0 +1,23 @@
+/* ?1 -- utility tool */
+parse arg pfx params
+select
+  when pfx='c' then call makeCanvas params
+  otherwise call help
+end
+exit
+
+makeCanvas: procedure
+  parse arg width color name
+  icmd='magick -size' width'x'width 'xc:'color name
+  -- ADDRESS CMD icmd
+  call prompt icmd
+  return
+
+help: procedure
+  say '?1 -- A utility tool, version' 0.1
+  say 'commands:'
+  parse source . . srcfile .
+  call showSourceOptions srcfile, 'when pfx'
+  return
+
+::requires 'UtilRoutines.rex'

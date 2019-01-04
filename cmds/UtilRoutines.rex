@@ -1,6 +1,6 @@
 /* Common functions for productivity utils */
 ::routine version public
-  return '0.11'
+  return '0.12'
 
 ::routine runcmd public
   parse arg xcmd, message
@@ -8,19 +8,6 @@
   if message<>'' then call charout , message
   ADDRESS CMD xcmd
   return
-
-/* Prompt user with question */
-::routine ask public
-  parse arg q, useCase
-  call charout , q' '
-  if useCase='' then pull ans
-  else               parse pull ans
-  return ans
-
-/* Prompt user with a Yes/No question */
-::routine askYN public
-  parse arg q
-  return ask(q '(ENTER=Yes)')=''
 
 /* Prompt user to run a given command */
 ::routine prompt public
@@ -40,6 +27,23 @@
   else say 'Command cancelled'
   return rcode
 
+/* Prompt user with question */
+::routine ask public
+  parse arg q, useCase
+  call charout , q' '
+  if useCase='' then pull ans
+  else               parse pull ans
+  return ans
+
+/* Prompt user with a Yes/No question */
+::routine askYN public
+  parse arg q
+  return ask(q '(ENTER=Yes)')=''
+
+::routine hasvalue public
+  use arg obj
+  return \(obj=.NIL | obj='')
+
 /* Validate a numerical value and optionally return a default */
 ::routine getnum public
   arg numval, default
@@ -48,11 +52,16 @@
   return default
 
 ::routine showSourceOptions public
-  parse arg srcfile, searchStr
-  ADDRESS CMD 'grep -i "'searchStr'"' srcfile '|RXQUEUE'
-  do while queued()>0
+  parse arg srcfile, prefix, searchStr
+  ADDRESS CMD 'grep -i "'prefix'"' srcfile '|RXQUEUE'
+  if searchStr='' then do while queued()>0
     parse pull . '=' entry . action
     if entry='' then iterate
+    say ' ' left(entry, 12, '.') action
+  end
+  else do while queued()>0
+    parse pull . '=' entry . action
+    if entry='' | pos(searchStr, entry action)=0 then iterate
     say ' ' left(entry, 12, '.') action
   end
   return
@@ -61,12 +70,25 @@
 ::routine pickItem public
   use arg items.
   totalItems=items.0
+  if totalItems=0 then return ''
   do i=1 to totalItems
-    say i items.i
+    say i partialPath(items.i)
   end i
   idx=ask('Enter item number: (1-'totalItems') ->')
   if (\datatype(idx,'W') | idx<1 | idx>totalItems) then return ''
   return items.idx
+
+::routine pickAItem public
+  use arg items
+  totalItems=items~size
+  if totalItems=0 then return ''
+  do i=1 to totalItems
+    say i items[i]
+  end
+  rcode=-1
+  idx=ask('Enter item number: (1-'totalItems') ->')
+  if \datatype(idx,'W') | idx<1 | idx>totalItems then return ''
+  return items[idx]
 
 /* Return a mulitiple selections from a stem */
 ::routine pickIndexesFromStem public
@@ -77,7 +99,7 @@
   end i
   return getSelections(totalItems)
 
-/* Return a mulitiple selections from an array */
+/* Return multiple selections from an array */
 ::routine pickIndexes public
   use arg list
   totalItems=list~items

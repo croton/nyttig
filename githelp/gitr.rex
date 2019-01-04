@@ -3,7 +3,7 @@ call trace 'off'
 SIGNAL ON NOTREADY NAME programEnd
 CURRBRANCH=getBranch()
 VISITEDBRANCH=.Set~of(CURRBRANCH)
-LASTCMD=''
+ALLCMDS=.Array~new
 call help
 
 ctr=0
@@ -16,13 +16,16 @@ do forever
       say 'Leaving git shell ...'
       exit 0
     end
-    when gcmd='help' then call help
+    when gcmd='help' then call help params
     when gcmd='.' then call runLastCmd
+    when gcmd='..' then call runLastCmd 'PICK'
     when gcmd='b' then call switchBranch params
     when gcmd='br' then call showVisitedBranches
     when gcmd='m' then call switchBranch 'master'
-    when gcmd='dh' then call compareCommits params
-    when gcmd='dht' then call compareCommits params 'difftool'
+    when gcmd='vf' then call addCmd viewfile(params)
+    when gcmd='dh' then call addCmd compareCommits(params)
+    when gcmd='dht' then call addCmd compareCommits(params 'difftool')
+    when gcmd='dha' then call addCmd compareAdjacentCommits(params)
     when gcmd='rx' then interpret 'say' params
     otherwise
       call runcmd gcmd params
@@ -44,13 +47,22 @@ updateBranch: procedure expose CURRBRANCH VISITEDBRANCH
   end
   return
 
-runLastCmd: procedure expose CURRBRANCH
-  parse arg options
-  if LASTCMD='' then say 'No previous command available'
-  else do
-    if askYN('Run' LASTCMD'?') then ADDRESS CMD LASTCMD
-    call updateBranch
+/* Add a command to the command list. */
+addCmd: procedure expose ALLCMDS
+  parse arg gcmd
+  if gcmd<>'' then ALLCMDS~append(gcmd)
+  return
+
+runLastCmd: procedure expose CURRBRANCH ALLCMDS
+  parse arg pickFromList
+  if pickFromList='' then lastcmd=ALLCMDS~lastItem
+  else                    lastcmd=pickAItem(ALLCMDS)
+  if hasvalue(lastcmd) then do
+    call prompt lastcmd
+    if pos('branch', lastcmd)>0 then call updateBranch
+    else say 'No branch update'
   end
+  else say 'The command stack is empty or selection cancelled!'
   return
 
 switchBranch: procedure expose CURRBRANCH VISITEDBRANCH
@@ -73,11 +85,13 @@ showVisitedBranches: procedure expose VISITEDBRANCH
   return
 
 help: procedure
-  say 'gitr -- An interactive git shell, version' 0.11
+  say 'gitr -- An interactive git shell, version' 0.12
   say 'Type EXIT to leave.'
-  say 'commands:'
+  parse arg filter
   parse source . . srcfile .
-  call showSourceOptions srcfile, 'when gcmd'
+  if filter='' then say 'commands:'
+  else              say 'commands containing "'filter'":'
+  call showSourceOptions srcfile, 'when gcmd', filter
   return
 
 programEnd:

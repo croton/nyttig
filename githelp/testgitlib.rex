@@ -15,7 +15,9 @@ do forever
     when gcmd='br' then call showVisitedBranches
     when gcmd='bn' then call addBranch params
     when gcmd='hd' then call testHead params
+    when gcmd='dh' then call testDiffHistory params
     when gcmd='choice' then call testChoice params
+    when gcmd='cmdout' then call testCmdOut params
     when gcmd='rx' then interpret 'say' params
     otherwise call runcmd gcmd params
   end
@@ -44,6 +46,35 @@ testHead: procedure
   say 'Input' params '(using "-" as prefix) expands to' hd(params, '-')
   return
 
+testDiffHistory: procedure
+  parse arg fspec
+  fn=pickFile(fspec)
+  if fn='' then say 'No file specified'
+  else do
+    output=cmdOut('git log --pretty=format:"%h %s" -n 5 --follow' fn)
+    resultCount=output~items
+    if resultCount>0 then do
+      parse value pickIndexes(output) with idx1 idx2
+      say 'Compare these commits:' word(output[idx1], 1) word(output[idx2],1)
+    end
+    else say 'No results'
+  end
+  return
+
+testCmdOut: procedure
+  parse arg gcmd
+  output=cmdOut(gcmd)
+  say 'Results:' output~items
+  do i=1 to output~items
+    say i '=' output[i]
+  end i
+/*
+  loop item over output
+    say '->' item
+  end
+*/
+  return
+
 showprompt: procedure
   parse arg prefix
   return '...'strip(right(directory(), 25)) '>> '
@@ -64,6 +95,7 @@ showVisitedBranches: procedure expose VISITEDBRANCH
 syntax:
   say 'There has been a syntax anomaly originated from line' SIGL'.'
   say 'Please look into it at once.'
+  say sourceline(SIGL)
   return
 
 help: procedure
