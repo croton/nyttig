@@ -1,7 +1,7 @@
 ::requires 'UtilRoutines.rex'
 
 ::routine version public
-  return '0.13'
+  return '0.14'
 
 ::routine getBranch public
   currBranch=''
@@ -41,21 +41,22 @@
     say 'Switch branch? There is only one, current:' branches.CURRENT
     return -1
   end
-  currbranch=branches.CURRENT
-  if filter<>'' then do
+  say 'Switch to which branch? (current='branches.CURRENT')'
+  if filter='' then ok=applyCmd2Choice('git checkout', branches.)
+  else do
     ctr=0
     do i=1 to branches.0
       if pos(filter, branches.i)=0 then iterate
       ctr=ctr+1
       selbranch.ctr=branches.i
     end i
-    if ctr>0 then do
+    if ctr=0 then ok=-1
+    else do
       selbranch.0=ctr
-      branches.=selbranch.
+      ok=applyCmd2Choice('git checkout', selbranch.)
     end
   end
-  say 'Switch to which branch? (current='currbranch')'
-  return applyCmd2Item('git checkout', branches.)
+  return ok
 
 ::routine changeBranch public
   parse arg branchname
@@ -103,7 +104,7 @@
     gcmd='git log --pretty=format:"%h %s" -n 10 --follow' fn
     output=cmdOut(gcmd)
     if output~items>0 then do
-      parse value pickIndexes(output) with idx1 idx2
+      parse value pickAIndexes(output) with idx1 idx2
       if \(datatype(idx1,'W') & datatype(idx2,'W')) then say 'Comparison cancelled'
       else do
         if useTool='' then
@@ -127,7 +128,7 @@
   end
   if promptMessage='' then say 'Apply "'gcmd'" to which file(s)?'
   else                     say promptMessage
-  call applyCmd gcmd, changed.
+  call applyCmd2Each gcmd, changed.
   return
 
 /* Run a git command and return a stem containing a list of file names */

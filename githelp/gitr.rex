@@ -67,12 +67,12 @@ runLastCmd: procedure expose CURRBRANCH ALLCMDS
 
 switchBranch: procedure expose CURRBRANCH VISITEDBRANCH
   parse arg branchname
-  if branchname='' then
-    rcode=pickBranch()
-  else
-    rcode=changeBranch(branchname)
-  if rcode=0 then call updateBranch
-  else say 'Problem changing branch:' rcode
+  rcode=pickBranch(branchname)
+  select
+    when rcode=0 then call updateBranch
+    when rcode<0 then say 'Selection cancelled'
+    otherwise         say 'Problem changing branch:' rcode
+  end
   return
 
 showVisitedBranches: procedure expose VISITEDBRANCH

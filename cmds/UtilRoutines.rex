@@ -1,6 +1,6 @@
 /* Common functions for productivity utils */
 ::routine version public
-  return '0.12'
+  return '0.13'
 
 ::routine runcmd public
   parse arg xcmd, message
@@ -24,7 +24,6 @@
     ADDRESS CMD xcmd
     rcode=rc
   end
-  else say 'Command cancelled'
   return rcode
 
 /* Prompt user with question */
@@ -68,41 +67,55 @@
 
 /* Return a single selection from a stem */
 ::routine pickItem public
-  use arg items.
-  totalItems=items.0
-  if totalItems=0 then return ''
-  do i=1 to totalItems
-    say i partialPath(items.i)
-  end i
-  idx=ask('Enter item number: (1-'totalItems') ->')
-  if (\datatype(idx,'W') | idx<1 | idx>totalItems) then return ''
+  use arg items., doTransform
+  idx=pickIndex(items., doTransform)
+  if idx='' then return ''
   return items.idx
 
 ::routine pickAItem public
+  use arg items
+  idx=pickAIndex(items)
+  if idx='' then return ''
+  return items[idx]
+
+/* Return single selection from a stem */
+::routine pickIndex public
+  use arg items., doTransform
+  totalItems=items.0
+  if totalItems=0 then return ''
+  if doTransform='' then do i=1 to totalItems
+    say i items.i
+  end i
+  else do i=1 to totalItems
+    say i partialPath(items.i)
+  end i
+  return getSelection(totalItems)
+
+/* Return single selection from an array */
+::routine pickAIndex public
   use arg items
   totalItems=items~size
   if totalItems=0 then return ''
   do i=1 to totalItems
     say i items[i]
-  end
-  rcode=-1
-  idx=ask('Enter item number: (1-'totalItems') ->')
-  if \datatype(idx,'W') | idx<1 | idx>totalItems then return ''
-  return items[idx]
+  end i
+  return getSelection(totalItems)
 
-/* Return a mulitiple selections from a stem */
-::routine pickIndexesFromStem public
+/* Return multiple selections from a stem */
+::routine pickIndexes public
   use arg items.
   totalItems=items.0
+  if totalItems=0 then return ''
   do i=1 to totalItems
     say i items.i
   end i
   return getSelections(totalItems)
 
 /* Return multiple selections from an array */
-::routine pickIndexes public
+::routine pickAIndexes public
   use arg list
   totalItems=list~items
+  if totalItems=0 then return ''
   do i=1 to totalItems
     say i list[i]
   end i
@@ -115,7 +128,7 @@
   rc=SysFileTree(fspec,'files.','FSO')
   if files.0=0 then return ''
   else if files.0=1 then return partialPath(files.1)
-  fn=pickItem(files.)
+  fn=pickItem(files., 'T')
   if fn='' then return ''
   return partialPath(fn)
 
@@ -124,61 +137,47 @@
   return changestr(directory(), filename, '.')
 
 /* Run a specified command on a single selection from a stem */
-::routine applyCmd2Item public
+::routine applyCmd2Choice public
   use arg xcmd, items.
-  totalItems=items.0
-  do i=1 to totalItems
-    say i items.i
-  end i
+  item=pickItem(items.)
   rcode=-1
-  idx=ask('Enter item number: (1-'totalItems') ->')
-  if \datatype(idx,'W') | idx<1 | idx>totalItems then say 'Selection cancelled'
-  else do
-    ADDRESS CMD xcmd items.idx
+  if item<>'' then do
+    ADDRESS CMD xcmd item
     rcode=rc
   end
   return rcode
 
-/* Run a specified command on a single selection from a collection */
-::routine applyCmd2Choice public
+/* Run a specified command on a single selection from an array*/
+::routine applyCmd2AChoice public
   use arg xcmd, items
-  totalItems=items~size
-  do i=1 to totalItems
-    say i items[i]
-  end
+  item=pickAItem(items)
   rcode=-1
-  idx=ask('Enter item number: (1-'totalItems') ->')
-  if \datatype(idx,'W') | idx<1 | idx>totalItems then say 'Selection cancelled'
+  if item='' then say 'Selection cancelled'
   else do
-    ADDRESS CMD xcmd items[idx]
+    ADDRESS CMD xcmd item
     rcode=rc
   end
   return rcode
 
 /* Run a specified command on each of the selections from a stem */
-::routine applyCmd public
+::routine applyCmd2Each public
   use arg xcmd, items.
-  do i=1 to items.0
-    say i items.i
-  end i
-  fnums=getSelections(items.0)
+  fnums=pickIndexes(items.)
+  if fnums='' then return
   do w=1 to words(fnums)
     idx=word(fnums,w)
-    call prompt xcmd items.idx
+    ok=promptRC(xcmd items.idx)
   end w
   return
 
-/* Run a specified command on each of the selections from a list */
-::routine applyCmd2Choices public
+/* Run a specified command on each of the selections from an array */
+::routine applyCmd2AEach public
   use arg xcmd, items, doPrompt
-  totalItems=items~size
-  do i=1 to totalItems
-    say i items[i]
-  end i
-  fnums=getSelections(totalItems)
+  fnums=pickAIndexes(items)
+  if fnums='' then return
   if doPrompt=1 then do w=1 to words(fnums)
     idx=word(fnums,w)
-    call prompt xcmd items[idx]
+    call promptRC xcmd items[idx]
   end w
   else do w=1 to words(fnums)
     idx=word(fnums,w)
@@ -186,8 +185,21 @@
   end w
   return
 
-/* Prompt for one or more indexes of items in a list and handle hyphens to indicate a range */
-::routine getSelections public
+::routine cmdOut public
+  parse arg xcmd
+  entries=.Array~new
+  say '->' xcmd
+  ADDRESS CMD xcmd '|RXQUEUE'
+  do while queued()>0
+    parse pull entry
+    entries~append(entry)
+  end
+  return entries
+
+/* Prompt for one or more indexes of items in a list and handle hyphens to indicate a range.
+   Returns a space-delimited string of numeric indexes.
+*/
+::routine getSelections private
   parse arg maxnum, message
   if message='' then message='Enter item number(s): (1-'maxnum') ->'
   numlist=''
@@ -206,14 +218,11 @@
   end w
   return numlist
 
-::routine cmdOut public
-  parse arg xcmd
-  entries=.Array~new
-  say '->' xcmd
-  ADDRESS CMD xcmd '|RXQUEUE'
-  do while queued()>0
-    parse pull entry
-    entries~append(entry)
-  end
-  return entries
+/* Prompt for one choice among the items in a list */
+::routine getSelection private
+  parse arg maxnum, message
+  if message='' then message='Enter item number: (1-'maxnum') ->'
+  idx=ask(message)
+  if \datatype(idx,'W') | idx<1 | idx>maxnum then return ''
+  return idx
 

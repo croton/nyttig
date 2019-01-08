@@ -26,17 +26,14 @@ exit
 
 testChoice: procedure expose VISITEDBRANCH
   parse arg stuff
-  fish=.array~of('golden trout','arctic char','black nosed dace','johnny darter')
-  bugs=.array~of('backswimmer','giant water bug','water strider','water boatman','leaf hopper','cicada')
-  say 'Pick one from these fish:'
-  call applyCmd2Choice 'echo You picked this fish:', fish
-  say 'Pick from these bugs:'
-  call applyCmd2Choices 'echo You picked this bug', bugs
-  say 'Pick from these bugs (WITH prompting):'
-  call applyCmd2Choices 'echo You picked these bugs?', bugs, 1
   if VISITEDBRANCH~items>0 then do
     say 'Pick one from these visited branches:'
-    call applyCmd2Choice 'echo You picked this branch (among those already visited):', VISITEDBRANCH~makeArray
+    call applyCmd2AChoice 'echo You picked this branch (among those already visited):', VISITEDBRANCH~makeArray
+  end
+  else do
+    say 'No branches visited? Ok use another, sample, list:'
+    ornaments=.Array~of('foto', 'grinch', 'house with Magi', 'green metallic ball', 'Cody mini tree', 'red metallic pear')
+    call applyCmd2AChoice 'echo Your selected Xmas ornament is:', ornaments
   end
   return
 
@@ -54,7 +51,9 @@ testDiffHistory: procedure
     output=cmdOut('git log --pretty=format:"%h %s" -n 5 --follow' fn)
     resultCount=output~items
     if resultCount>0 then do
-      parse value pickIndexes(output) with idx1 idx2
+      ans=pickAIndexes(output)
+      if ans='' then return
+      parse var ans idx1 idx2
       say 'Compare these commits:' word(output[idx1], 1) word(output[idx2],1)
     end
     else say 'No results'
