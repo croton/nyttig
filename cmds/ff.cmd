@@ -1,2 +1,2 @@
-:: -l = show filename ONLY
-@dir "%1" /s /b |asarg grep -l %2
+@echo off
+call fi %*|repf

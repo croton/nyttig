@@ -1,11 +1,12 @@
 /* Common functions for productivity utils */
 ::routine version public
-  return '0.13'
+  return '0.14'
 
 ::routine runcmd public
-  parse arg xcmd, message
+  parse arg xcmd, verbose
   if xcmd='' then return
-  if message<>'' then call charout , message
+  showCmd=abbrev('1', verbose)
+  if showCmd then say 'Run "'xcmd'"'
   ADDRESS CMD xcmd
   return
 
@@ -17,7 +18,7 @@
   return
 
 /* Prompt user to run a given command and return RC */
-::routine promptRc public
+::routine run public
   parse arg xcmd
   rcode=-1
   if askYN(xcmd) then do
@@ -166,7 +167,7 @@
   if fnums='' then return
   do w=1 to words(fnums)
     idx=word(fnums,w)
-    ok=promptRC(xcmd items.idx)
+    ok=run(xcmd items.idx)
   end w
   return
 
@@ -177,7 +178,7 @@
   if fnums='' then return
   if doPrompt=1 then do w=1 to words(fnums)
     idx=word(fnums,w)
-    call promptRC xcmd items[idx]
+    ok=run(xcmd items[idx])
   end w
   else do w=1 to words(fnums)
     idx=word(fnums,w)

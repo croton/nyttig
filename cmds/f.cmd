@@ -1,6 +1,6 @@
 @echo off
 if "%2"=="" (
-  dir %* /s /b
+  dir %* /s /b |repf
 ) else (
   :: -l = show filename ONLY
   dir "%1" /s /b |asarg grep -l %2

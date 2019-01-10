@@ -8,6 +8,7 @@ select
   when option='m' then call load filenames, 'MD'
   when option='mo' then call load filenames, 'MOCHA'
   when option='n' then call load filenames, 'NODEJS'
+  when option='r' then call load filenames, 'REACTJS'
   when option='t' then call load filenames, 'TSCRIPT'
   otherwise call load filenames
 end
