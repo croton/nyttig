@@ -21,7 +21,9 @@ do forever
     when gcmd='..' then call runLastCmd 'PICK'
     when gcmd='b' then call switchBranch params
     when gcmd='br' then call showVisitedBranches
+    when gcmd='cl' then call addCmd cloneProject(params)
     when gcmd='m' then call switchBranch 'master'
+    when gcmd='lf' then call addCmd logfile(params)
     when gcmd='vf' then call addCmd viewfile(params)
     when gcmd='dh' then call addCmd compareCommits(params)
     when gcmd='dht' then call addCmd compareCommits(params 'difftool')
@@ -58,7 +60,7 @@ runLastCmd: procedure expose CURRBRANCH ALLCMDS
   if pickFromList='' then lastcmd=ALLCMDS~lastItem
   else                    lastcmd=pickAItem(ALLCMDS)
   if hasvalue(lastcmd) then do
-    call prompt lastcmd
+    call runcmd lastcmd
     if pos('branch', lastcmd)>0 then call updateBranch
     else say 'No branch update'
   end
@@ -85,7 +87,7 @@ showVisitedBranches: procedure expose VISITEDBRANCH
   return
 
 help: procedure
-  say 'gitr -- An interactive git shell, version' 0.12
+  say 'gitr -- An interactive git shell, version' 0.13
   say 'Type EXIT to leave.'
   parse arg filter
   parse source . . srcfile .

@@ -14,6 +14,7 @@ select
   when pfx='cmf' then call commit 0, '#F' cmds
   when pfx='cmm' then call commit 0, '#M' cmds
   when pfx='df' then 'git diff' cmds
+  when pfx='du' then 'git diff --name-only|asarg git add'
   when pfx='dh' then call diffByVersion cmds
   when pfx='dd' then call diffByFile cmds
   when pfx='ddt' then call diffByFile cmds, 'GUI'
@@ -29,7 +30,7 @@ select
   when pfx='pl' then call branchEdit 'PULL'
   when pfx='r' then call rollbackChange
   when pfx='s' then 'git status -uno' cmds
-  when pfx='ss' then 'git status -s -uno'
+  when pfx='ss' then 'git status -s' cmds
   when pfx='sf' then call showChanged cmds
   when pfx='so' then call showByHead '--name-only', cmds
   when pfx='sos' then call showByHead '--stat --oneline', cmds
@@ -235,19 +236,19 @@ showByHead: procedure
 logCustom: procedure
   parse arg params
   gcmd='git log --pretty=format:"%h %aD %s"'
+    -- 'git log --pretty=format:"%h %ar [%an] %s"'
   if params='' then do
     say 'Missing parameters: [log-options][-d date-expr][-a author]'
     return
   end
-  gcmd=gcmd translateLogArgs(params)
-  if askYN(gcmd) then do
-    ADDRESS CMD gcmd '|RXQUEUE'
-    do while queued()>0
-      parse pull entry
-      say delword(entry,7,1) -- remove timezone
-    end
+  call runcmd gcmd translateLogArgs(params)
+ /*
+  ADDRESS CMD gcmd '|RXQUEUE'
+  do while queued()>0
+    parse pull entry
+    say delword(entry,7,1) -- remove timezone
   end
-  else say 'Command cancelled'
+ */
   return
 
 /* Run commands for each merge request */
@@ -372,6 +373,14 @@ prompt: procedure
   end
   else say 'Command cancelled'
   return rcode
+
+/* Run an external command */
+runcmd: procedure
+  parse arg xcmd, verbose
+  if xcmd='' then return
+  if abbrev('1', verbose) then say 'Run ['xcmd']'
+  ADDRESS CMD xcmd
+  return
 
 /* Validate a numerical value and optionally return a default */
 getnum: procedure

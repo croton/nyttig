@@ -65,6 +65,18 @@
   ADDRESS CMD gcmd
   return rc
 
+/* See the commit log entries for a given file */
+::routine logfile public
+  parse arg fspec
+  fn=pickFile(fspec)
+  gcmd=''
+  if fn='' then say 'No file specified'
+  else do
+    gcmd='git log --pretty=format:"%h %aD: %s" --follow' fn
+    call prompt gcmd
+  end
+  return gcmd
+
 ::routine viewfile public
   parse arg fspec rev
   fn=pickFile(fspec)
@@ -84,7 +96,6 @@
   gcmd=''
   if fn='' then say 'No file specified'
   else do
-    fnt=translate(fn, '/', '\')
     headOffset=toNum(rev)
     if rev='' then gcmd='git diff HEAD~1 HEAD --' fn
     else           gcmd='git diff' hd('~'headOffset+1) hd('~'headOffset) '--' fn
@@ -180,4 +191,10 @@
   if \datatype(maxval,'W') then maxval=20
   if datatype(numval,'W') & numval<=maxval then return numval
   return 1
+
+::routine cloneProject public
+  parse arg name
+  gcmd='git clone https://github.com/croton/'name'.git'
+  call prompt gcmd
+  return gcmd
 
