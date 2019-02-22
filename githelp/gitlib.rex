@@ -122,6 +122,9 @@
           gcmd='git diff' word(output[idx1],1) word(output[idx2],1) '--' fn
         else
           gcmd='git difftool' word(output[idx1],1) word(output[idx2],1) '--' fn
+        say 'Compare commits for' fn
+        say ' ' subword(output[idx1],2)
+        say ' ' subword(output[idx2],2)
         call prompt gcmd
       end
     end

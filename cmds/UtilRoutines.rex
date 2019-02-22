@@ -1,12 +1,12 @@
 /* Common functions for productivity utils */
 ::routine version public
-  return '0.14'
+  return '0.15'
 
 ::routine runcmd public
   parse arg xcmd, verbose
   if xcmd='' then return
   showCmd=abbrev('1', verbose)
-  if showCmd then say 'Run "'xcmd'"'
+  if showCmd then say 'Run ['xcmd']'
   ADDRESS CMD xcmd
   return
 
@@ -189,13 +189,47 @@
 ::routine cmdOut public
   parse arg xcmd
   entries=.Array~new
-  say '->' xcmd
+  if xcmd='' then return entries
   ADDRESS CMD xcmd '|RXQUEUE'
   do while queued()>0
     parse pull entry
     entries~append(entry)
   end
   return entries
+
+::routine cmdTop public
+  parse arg xcmd
+  if xcmd='' then return ''
+  ADDRESS CMD xcmd '|RXQUEUE'
+  if queued()>0 then parse pull entry
+  do while queued()>0; pull . ; end
+  return entry
+
+/* Merge a template with values */
+::routine merge public
+  parse arg template, tokens, ph
+  if ph='' then ph='?'
+  pha=ph'*'  -- for inserting all values in one placeholder
+  if pos(ph, template)=0 then return template
+  if pos(pha, template)>0 then return changestr(pha, template, tokens)
+  line=template
+  delim=left(tokens, 1)
+  -- Are values to be delimited by something other than a space?
+  if delim='#' | delim='~' then do
+    w=0
+    tokens=substr(tokens, 2)
+    do until tokens=''
+      parse var tokens val (delim) tokens
+      if val='' then iterate
+      w=w+1
+      line=changestr(ph||w, line, val)
+    end
+  end
+  else do w=1 to words(tokens)
+    line=changestr(ph||w, line, word(tokens, w))
+  end w
+  if pos('?d', line)>0 then line=changestr('?d', line, translate('CcYy-Mm-Dd', date('s'), 'CcYyMmDd'))
+  return line
 
 /* Prompt for one or more indexes of items in a list and handle hyphens to indicate a range.
    Returns a space-delimited string of numeric indexes.

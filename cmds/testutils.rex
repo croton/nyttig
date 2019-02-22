@@ -12,44 +12,63 @@ bugs.0=6
 
 select
   when pfx='run' then call testrun params
-  when pfx='gso' then call testgso params
-  when pfx='ac' then call testac params
-  when pfx='aca' then call testaca params
-  when pfx='pi' then call testpi params
-  when pfx='pia' then call testpia params
-  when pfx='pf' then call testpf params
-  when pfx='ev' then call testev params
+  when pfx='gso' then call testShowSourceOptions params
+  when pfx='ac' then call testApplyCmd params
+  when pfx='aca' then call testApplyCmdA params
+  when pfx='pi' then call testPickItem params
+  when pfx='pia' then call testPickItemA params
+  when pfx='pf' then call testPickFile params
+  when pfx='ev' then call testEvalCmd params
+  when pfx='xc' then call testExternalCmd params
+  when pfx='mrg' then call testmrg params
   otherwise call help
 end
 exit
 
+testmrg: procedure
+  parse arg templ
+  if templ='' then templ='my ?1 template for ?2 on ?3'
+  say 'Using template "'templ'"; please enter values (if using delimiter, use # or ~):'
+  parse pull values
+  say '->' merge(templ, values)
+  return
+
 testrun: procedure
-  parse arg fspec
-  scmd='dir' fspec '/b'
-  say; say 'Try 1, press ENTER'; pull .
+  parse arg scmd
+  if scmd='' then scmd='dir /b /a:d'
+  say; say 'Run' scmd', NO params [press ENTER]'; pull .
   call runcmd scmd
-  say; say 'Try 2, press ENTER'; pull .
+  say; say 'Run' scmd', param=blank-string [press ENTER]'; pull .
   call runcmd scmd, ''
-  say; say 'Try 3, press ENTER'; pull .
+  say; say 'Run' scmd', param=1 [press ENTER]'; pull .
   call runcmd scmd, 1
-  say; say 'Try 4, press ENTER'; pull .
+  say; say 'Run' scmd', param=0 [press ENTER]'; pull .
   call runcmd scmd, 0
-  say; say 'Try 5, press ENTER'; pull .
+  say; say 'Run' scmd', param=YES [press ENTER]'; pull .
   call runcmd scmd, YES
   return
 
-testgso: procedure
+testShowSourceOptions: procedure
   parse arg srcfile searchStr
   call showSourceOptions srcfile, 'when pfx', searchStr
   return
 
-testpf: procedure
+testPickFile: procedure
   parse arg fspec
   myfile=pickFile(fspec)
   say 'pickFile' fspec '-> "'myfile'"'
   return
 
-testpia: procedure
+testPickItemckItem: procedure expose bugs.
+  parse arg doTransform
+  if doTransform=0 then doTransform=''
+  -- choice=pickItem(bugs.)
+  -- say 'pickItem(bugs.) -> "'choice'"'
+  choiceWithTransform=pickItem(bugs., doTransform)
+  say 'pickItem(bugs, "'doTransform'") -> "'choiceWithTransform'"'
+  return
+
+testPickItemA: procedure
   parse arg wordlist
   mylist=.Array~new
   do w=1 to words(wordlist)
@@ -60,23 +79,14 @@ testpia: procedure
   say 'pickAtem(mylist) -> "'choice'"'
   return
 
-testpi: procedure expose bugs.
-  parse arg doTransform
-  if doTransform=0 then doTransform=''
-  -- choice=pickItem(bugs.)
-  -- say 'pickItem(bugs.) -> "'choice'"'
-  choiceWithTransform=pickItem(bugs., doTransform)
-  say 'pickItem(bugs, "'doTransform'") -> "'choiceWithTransform'"'
-  return
-
-testac: procedure expose bugs.
+testApplyCmd: procedure expose bugs.
   parse arg input
   mycode=applyCmd2Choice('Echo you picked', bugs.)
   say '*** Return code:' mycode 'Now choose one or MORE'; say ''
   call applyCmd2Each 'echo You picked this bug:', bugs.
   return
 
-testaca: procedure
+testApplyCmdA: procedure
   fish=.array~of('golden trout','arctic char','black nosed dace','johnny darter')
   -- bugs=.array~of('backswimmer','giant water bug','water strider','water boatman','leaf hopper','cicada')
   say 'Pick one from these fish:'
@@ -86,10 +96,16 @@ testaca: procedure
   return
 
 -- Possible usage: search a file for a spec; select one; copy to clipboard
-testev: procedure expose bugs.
+testEvalCmd: procedure expose bugs.
   parse arg xcmd
   ok=evalCmdWithChoice(xcmd, bugs.)
   say 'RC evalCmdWithChoice("'xcmd'") ->' ok
+  return
+
+testExternalCmd: procedure
+  parse arg xcmd
+  firstOutput=cmdTop(xcmd)
+  say 'RC cmdTop("'xcmd'") ->' firstOutput
   return
 
 evalCmdWithChoice: procedure

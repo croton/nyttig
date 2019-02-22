@@ -5,7 +5,8 @@ select
   when pfx='b' then 'git branch' cmds
   when pfx='bc' then 'git branch|grep -e "^\*"'
   when pfx='bb' then call branchSwitch cmds
-  when pfx='bd' then 'git branch --sort=-committerdate -v'
+  when pfx='bd' then 'git branch --sort=-committerdate -v|head -'getnum(cmds,10)
+  when pfx='bn' then call prompt 'git checkout -b feature/'cmds
   when pfx='bu' then call branchUpstream cmds
   when pfx='cfg' then 'git config --list --show-origin'
   when pfx='ck' then 'git checkout' cmds
@@ -14,22 +15,22 @@ select
   when pfx='cmf' then call commit 0, '#F' cmds
   when pfx='cmm' then call commit 0, '#M' cmds
   when pfx='df' then 'git diff' cmds
-  when pfx='du' then 'git diff --name-only|asarg git add'
+  when pfx='du' then 'git diff --name-only|asarg echo git add'
   when pfx='dh' then call diffByVersion cmds
   when pfx='dd' then call diffByFile cmds
   when pfx='ddt' then call diffByFile cmds, 'GUI'
   when pfx='dfs' then 'git diff --staged' cmds
   when pfx='dft' then 'git difftool' cmds
   when pfx='l' then 'git log --oneline -n' getnum(cmds,10)
-  when pfx='lf' then call logByFile cmds
   when pfx='ll' then call logCustom cmds
+  when pfx='lf' then call logByFile cmds
   when pfx='ls' then 'git log --oneline --grep="'cmds'"'
   when pfx='m' then call prompt 'git checkout master'
   when pfx='mr' then call mergeRequest
   when pfx='pu' then call branchEdit
   when pfx='pl' then call branchEdit 'PULL'
   when pfx='r' then call rollbackChange
-  when pfx='s' then 'git status -uno' cmds
+  when pfx='s' then 'git status -uno' cmds '|grep -ve "\.\."'
   when pfx='ss' then 'git status -s' cmds
   when pfx='sf' then call showChanged cmds
   when pfx='so' then call showByHead '--name-only', cmds
@@ -38,7 +39,7 @@ select
   when pfx='stp' then 'git stash pop'
   when pfx='stl' then 'git stash list'
   when pfx='ui' then 'start git-gui'
-  when pfx='xstage' then 'git reset HEAD' cmds
+  when pfx='unst' then 'git reset HEAD' cmds
   when pfx='xtrak' then 'git ls-files . --exclude-standard --others'
   otherwise call help
 end
@@ -182,23 +183,28 @@ diffByFile: procedure
     end
     files.0=ctr
   end
-  if files.0=0 then do
-    say 'No files to diff' sha
+  select
+    when files.0=0 then do
+      say 'No files to diff' sha
+      return
+    end
+    when files.0=1 then fnum=1
+    otherwise
+      say 'Diff which file?'
+      do i=1 to files.0
+        say i files.i
+      end i
+      fnum=ask('Enter file number: (1-'files.0') ->')
+  end
+  if \datatype(fnum,'W') | fnum<1 | fnum>files.0 then do
+    say 'Selection cancelled'
     return
   end
-  say 'Diff which file?'
-  do i=1 to files.0
-    say i files.i
-  end i
-  bnum=ask('Enter file number: (1-'files.0') ->')
-  if \datatype(bnum,'W') | bnum<1 | bnum>files.0 then say 'Selection cancelled'
-  else do
-    if useGUI then gcmd='git difftool'
-    else           gcmd='git diff'
-    if sha='' then params=files.bnum
-    else           params=refSha 'HEAD --' files.bnum
-    ADDRESS CMD gcmd params
-  end
+  if useGUI then gcmd='git difftool'
+  else           gcmd='git diff'
+  if sha='' then params=files.fnum
+  else           params=refSha 'HEAD --' files.fnum
+  ADDRESS CMD gcmd params
   return
 
 /* Show changed files from git status, with some filtering */
@@ -237,18 +243,14 @@ logCustom: procedure
   parse arg params
   gcmd='git log --pretty=format:"%h %aD %s"'
     -- 'git log --pretty=format:"%h %ar [%an] %s"'
-  if params='' then do
+  if params='-?' then do
     say 'Missing parameters: [log-options][-d date-expr][-a author]'
     return
   end
-  call runcmd gcmd translateLogArgs(params)
- /*
-  ADDRESS CMD gcmd '|RXQUEUE'
-  do while queued()>0
-    parse pull entry
-    say delword(entry,7,1) -- remove timezone
-  end
- */
+  if params='' | datatype(params,'W') then
+    call runcmd gcmd '-n' getnum(params,10)
+  else
+    call runcmd gcmd translateLogArgs(params)
   return
 
 /* Run commands for each merge request */
@@ -288,7 +290,7 @@ applyCmd2ChangedFiles: procedure
 
 /* Run a git command which would return a list of files */
 queryChangedfiles: procedure
-  gcmd='git status -s -uno'
+  gcmd='git status -s -uno|grep -ve "\.\."' -- Filter out entries starting with ".."
   ADDRESS CMD gcmd '|RXQUEUE'
   ctr=0
   do while queued()>0
@@ -408,7 +410,7 @@ toNum: procedure
   return 1
 
 help: procedure
-  say 'g - Alias utility for Git, version' 0.62
+  say 'g - Alias utility for Git, version' 0.63
   say 'usage: g shortcut parameters'
   say 'shortcuts:'
   parse source . . srcfile .

@@ -1,0 +1,11 @@
+# Load TS editor
+H   TSEditor
+    et %f
+H   Compare
+    wm %f %D\%f
+H   Paste filename
+    echo %f|gc
+H   Git diff
+    start "Git-Diff" cmd /C git diff %f
+H   Git difftool
+    start "Git-Diff" cmd /C git difftool %f
