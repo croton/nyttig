@@ -4,3 +4,26 @@
 prefix=c:\MyTools\nodecfg\npm
 cache=c:\MyTools\nodecfg\npm\cache
 userconfig=c:\cjp\.npmrc
+
+# Create custom directory for node config, overriding the default
+mkdir nodecfg
+mkdir nodecfg\npm
+mkdir nodecfg\cache
+npm config set prefix nodecfg\npm
+npm config set cache nodecfg\cache --global
+SET PATH=%PATH%;.\nodecfg\npm
+
+# Windows command to associate JS files to NodeJS
+@ftype JSFile=C:\mytools\nodejs\node.exe "%1" %*
+ftype JSFile
+
+# Override defaults for npm init
+npm config set init.author.name "CJPena"
+npm config set init.author.email "celestino.pena@gmail.com"
+npm config set init.author.url "http://my.site.com"
+npm config set init.license "MIT"
+npm config set init.version "0.0.1"
+
+# Set verbosity of debugging
+silent, error, warn, http, info, verbose, and silly
+npm config set loglevel @

@@ -12,14 +12,13 @@ select
   when pfx='ck' then 'git checkout' cmds
   when pfx='cm' then call commit 0, cmds
   when pfx='cma' then call commit 1, cmds
-  when pfx='cmf' then call commit 0, '#F' cmds
-  when pfx='cmm' then call commit 0, '#M' cmds
   when pfx='df' then 'git diff' cmds
   when pfx='du' then 'git diff --name-only|asarg echo git add'
   when pfx='dh' then call diffByVersion cmds
   when pfx='dd' then call diffByFile cmds
   when pfx='ddt' then call diffByFile cmds, 'GUI'
   when pfx='dfs' then 'git diff --staged' cmds
+  when pfx='dfts' then 'git difftool --staged' cmds
   when pfx='dft' then 'git difftool' cmds
   when pfx='l' then 'git log --oneline -n' getnum(cmds,10)
   when pfx='ll' then call logCustom cmds
