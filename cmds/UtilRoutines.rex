@@ -10,6 +10,19 @@
   ADDRESS CMD xcmd
   return
 
+/* Prompt user with question */
+::routine ask public
+  parse arg q, useCase
+  call charout , q' '
+  if useCase='' then pull ans
+  else               parse pull ans
+  return ans
+
+/* Prompt user with a Yes/No question */
+::routine askYN public
+  parse arg q
+  return ask(q '(ENTER=Yes)')=''
+
 /* Prompt user to run a given command */
 ::routine prompt public
   parse arg xcmd
@@ -27,19 +40,6 @@
   end
   return rcode
 
-/* Prompt user with question */
-::routine ask public
-  parse arg q, useCase
-  call charout , q' '
-  if useCase='' then pull ans
-  else               parse pull ans
-  return ans
-
-/* Prompt user with a Yes/No question */
-::routine askYN public
-  parse arg q
-  return ask(q '(ENTER=Yes)')=''
-
 ::routine hasvalue public
   use arg obj
   return \(obj=.NIL | obj='')
@@ -51,6 +51,8 @@
   if datatype(numval,'W') then return numval
   return default
 
+/* Convenience function to parse the options within program source code. */
+-- TODO use SysFileSearch
 ::routine showSourceOptions public
   parse arg srcfile, prefix, searchStr
   ADDRESS CMD 'grep -i "'prefix'"' srcfile '|RXQUEUE'
@@ -73,13 +75,14 @@
   if idx='' then return ''
   return items.idx
 
+/* Return a single selection from an array */
 ::routine pickAItem public
   use arg items
   idx=pickAIndex(items)
   if idx='' then return ''
   return items[idx]
 
-/* Return single selection from a stem */
+/* Return single index from a stem */
 ::routine pickIndex public
   use arg items., doTransform
   totalItems=items.0
@@ -92,7 +95,7 @@
   end i
   return getSelection(totalItems)
 
-/* Return single selection from an array */
+/* Return single index from an array */
 ::routine pickAIndex public
   use arg items
   totalItems=items~size
@@ -102,7 +105,7 @@
   end i
   return getSelection(totalItems)
 
-/* Return multiple selections from a stem */
+/* Return multiple indexes from a stem */
 ::routine pickIndexes public
   use arg items.
   totalItems=items.0
@@ -112,7 +115,7 @@
   end i
   return getSelections(totalItems)
 
-/* Return multiple selections from an array */
+/* Return multiple indexes from an array */
 ::routine pickAIndexes public
   use arg list
   totalItems=list~items
@@ -148,7 +151,7 @@
   end
   return rcode
 
-/* Run a specified command on a single selection from an array*/
+/* Run a specified command on a single selection from an array */
 ::routine applyCmd2AChoice public
   use arg xcmd, items
   item=pickAItem(items)
@@ -186,6 +189,7 @@
   end w
   return
 
+/* Return lines of output from a given command */
 ::routine cmdOut public
   parse arg xcmd
   entries=.Array~new
@@ -197,6 +201,7 @@
   end
   return entries
 
+/* Return first line of output from a given command */
 ::routine cmdTop public
   parse arg xcmd
   if xcmd='' then return ''
@@ -260,4 +265,27 @@
   idx=ask(message)
   if \datatype(idx,'W') | idx<1 | idx>maxnum then return ''
   return idx
+
+/* A ternary operator */
+::routine ter public
+  parse arg expr, yesvalue, novalue
+  if expr=1 then return yesvalue
+  return novalue
+
+/* Get value of a given switch within a string.
+   Ex. parseOption('-dir', '-dir \myfolder -other 1') -- returns '\myfolder'
+*/
+::routine parseOption public
+  parse arg switch, options, firstOnly
+  firstword=abbrev('1', firstOnly)
+  w=wordpos(switch,options)
+  opt=''
+  if firstword then do  -- next word only
+    if w>0 then opt=word(options,w+1)
+  end
+  else do               -- all words
+    if w>0 then
+      parse value subword(options,w+1) with opt ' -' .
+  end
+  return opt
 

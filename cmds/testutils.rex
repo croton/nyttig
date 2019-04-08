@@ -1,5 +1,6 @@
 /* testutil -- test UtilRoutines library. */
 parse arg pfx params
+ver='0.0.1'
 
 -- Initialize a stem to use with various tests
 bugs.1='backswimmer'
@@ -21,9 +22,27 @@ select
   when pfx='ev' then call testEvalCmd params
   when pfx='xc' then call testExternalCmd params
   when pfx='mrg' then call testmrg params
+  when pfx='opt' then call testParseOption params
+  when pfx='ter' then call testTernary
+  when pfx='-v' then say 'testutil version:' ver
   otherwise call help
 end
 exit
+
+testTernary: procedure expose ver
+  expr=(ver='0.0.1')
+  exprAsText="ver='0.0.1'"
+  say 'Evaluation of "'exprAsText'":' ter(expr, 'Eureka!', 'Sorry, do try again.')
+  expr=(date('W')='Thursday')
+  exprAsText="date('W')='Thursday'"
+  say 'Evaluation of "'exprAsText'":' ter(expr, 'Yay!', 'Oops :(')
+  return
+
+testParseOption: procedure
+  parse arg switch input
+  say 'Value for' switch'="'parseOption(switch, input)'"'
+  say 'Alt. value for' switch'="'parseOption(switch, input, 0)'"'
+  return
 
 testmrg: procedure
   parse arg templ

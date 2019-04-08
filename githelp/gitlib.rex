@@ -201,3 +201,16 @@
   call prompt gcmd
   return gcmd
 
+::routine checkoutRemote public
+  parse arg name
+  gcmd='git branch -r'
+  branches=cmdout(gcmd)
+  if branches~items>0 then branches~delete(branches~first) -- ignore HEAD
+  choice=pickAItem(branches)
+  if choice='' then say 'No branch selected'
+  else do
+    parse var choice prefix '/' branchname
+    call prompt 'git checkout' branchname
+  end
+  return gcmd
+

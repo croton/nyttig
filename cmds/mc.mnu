@@ -1,7 +1,9 @@
 # Load TS editor
 H   TSEditor
     et %f
-H   Compare
+H   Diff
+    dif %f %D\%f
+H   Diff UI
     wm %f %D\%f
 H   Paste filename
     echo %f|gc

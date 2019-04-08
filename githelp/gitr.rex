@@ -28,6 +28,7 @@ do forever
     when gcmd='dh' then call addCmd compareCommits(params)
     when gcmd='dht' then call addCmd compareCommits(params 'difftool')
     when gcmd='dha' then call addCmd compareAdjacentCommits(params)
+    when gcmd='ckr' then call addCmd checkoutRemote(params)
     when gcmd='rx' then interpret 'say' params
     otherwise
       call runcmd gcmd params
