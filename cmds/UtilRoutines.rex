@@ -52,20 +52,25 @@
   return default
 
 /* Convenience function to parse the options within program source code. */
--- TODO use SysFileSearch
 ::routine showSourceOptions public
   parse arg srcfile, prefix, searchStr
-  ADDRESS CMD 'grep -i "'prefix'"' srcfile '|RXQUEUE'
-  if searchStr='' then do while queued()>0
-    parse pull . '=' entry . action
-    if entry='' then iterate
-    say ' ' left(entry, 12, '.') action
-  end
-  else do while queued()>0
-    parse pull . '=' entry . action
-    if entry='' | pos(searchStr, entry action)=0 then iterate
-    say ' ' left(entry, 12, '.') action
-  end
+  rc=SysFileSearch(prefix, srcfile, 'found.')
+  if found.0=0 then return
+  if searchStr='' then do i=1 to found.0
+    if abbrev(strip(found.i), prefix) then do
+      parse value found.i with . '=' entry . action
+      if entry='' then iterate
+      say ' ' left(entry, 12, '.') action
+    end
+  end i
+  else do i=1 to found.0
+    if abbrev(strip(found.i), prefix) then do
+      parse value found.i with . '=' entry . action
+      dofilter=(pos(translate(searchStr), translate(entry action))>0)
+      if entry='' | \dofilter then iterate
+      say ' ' left(entry, 12, '.') action
+    end
+  end i
   return
 
 /* Return a single selection from a stem */
