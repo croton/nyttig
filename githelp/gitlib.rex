@@ -1,7 +1,7 @@
 ::requires 'UtilRoutines.rex'
 
 ::routine version public
-  return '0.14'
+  return '0.15'
 
 ::routine getBranch public
   currBranch=''
@@ -203,6 +203,8 @@
 
 ::routine checkoutRemote public
   parse arg name
+  say 'Fetching ...'
+  'git fetch origin'
   gcmd='git branch -r'
   branches=cmdout(gcmd)
   if branches~items>0 then branches~delete(branches~first) -- ignore HEAD
@@ -213,4 +215,10 @@
     call prompt 'git checkout' branchname
   end
   return gcmd
+
+::routine addUntracked public
+  untracked=cmdOut('git ls-files . --exclude-standard --others')
+  if untracked~items=0 then say 'There are NO untracked files'
+  else call applyCmd2AEach 'git add', untracked, 1
+  return
 

@@ -29,6 +29,7 @@ do forever
     when gcmd='dht' then call addCmd compareCommits(params 'difftool')
     when gcmd='dha' then call addCmd compareAdjacentCommits(params)
     when gcmd='ckr' then call addCmd checkoutRemote(params)
+    when gcmd='tr' then call addUntracked
     when gcmd='rx' then interpret 'say' params
     otherwise
       call runcmd gcmd params
@@ -88,7 +89,7 @@ showVisitedBranches: procedure expose VISITEDBRANCH
   return
 
 help: procedure
-  say 'gitr -- An interactive git shell, version' 0.13
+  say 'gitr -- An interactive git shell, version' 0.14
   say 'Type EXIT to leave.'
   parse arg filter
   parse source . . srcfile .

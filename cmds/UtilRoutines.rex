@@ -1,6 +1,6 @@
 /* Common functions for productivity utils */
 ::routine version public
-  return '0.15'
+  return '0.16'
 
 ::routine runcmd public
   parse arg xcmd, verbose
@@ -249,7 +249,14 @@
   if message='' then message='Enter item number(s): (1-'maxnum') ->'
   numlist=''
   reply=ask(message)
-  do w=1 to words(reply)
+  if reply='*' then do
+    -- Accept ALL items
+    do w=1 to maxnum
+      numlist=numlist w
+    end w
+    return numlist
+  end
+  else do w=1 to words(reply)
     idx=word(reply,w)
     if datatype(idx,'W') & idx>0 & idx<=maxnum then numlist=numlist idx
     else if pos('-', idx)>0 then do
