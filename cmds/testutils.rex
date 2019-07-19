@@ -78,7 +78,7 @@ testPickFile: procedure
   say 'pickFile' fspec '-> "'myfile'"'
   return
 
-testPickItemckItem: procedure expose bugs.
+testPickItem: procedure expose bugs.
   parse arg doTransform
   if doTransform=0 then doTransform=''
   -- choice=pickItem(bugs.)
