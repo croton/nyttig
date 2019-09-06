@@ -12,16 +12,16 @@ bugs.6='cicada'
 bugs.0=6
 
 select
-  when pfx='run' then call testrun params
+  when pfx='run' then call testRunCmd params
   when pfx='gso' then call testShowSourceOptions params
-  when pfx='ac' then call testApplyCmd params
-  when pfx='aca' then call testApplyCmdA params
+  when pfx='ac' then call testApplyCmd
+  when pfx='aca' then call testApplyCmdA
   when pfx='pi' then call testPickItem params
-  when pfx='pia' then call testPickItemA params
+  when pfx='pia' then call testPickAItem params
   when pfx='pf' then call testPickFile params
   when pfx='ev' then call testEvalCmd params
-  when pfx='xc' then call testExternalCmd params
-  when pfx='mrg' then call testmrg params
+  when pfx='xc' then call testCmdTop params
+  when pfx='mrg' then call testMerge params
   when pfx='opt' then call testParseOption params
   when pfx='ter' then call testTernary
   when pfx='-v' then say 'testutil version:' ver
@@ -44,7 +44,7 @@ testParseOption: procedure
   say 'Alt. value for' switch'="'parseOption(switch, input, 0)'"'
   return
 
-testmrg: procedure
+testMerge: procedure
   parse arg templ
   if templ='' then templ='my ?1 template for ?2 on ?3'
   say 'Using template "'templ'"; please enter values (if using delimiter, use # or ~):'
@@ -52,7 +52,7 @@ testmrg: procedure
   say '->' merge(templ, values)
   return
 
-testrun: procedure
+testRunCmd: procedure
   parse arg scmd
   if scmd='' then scmd='dir /b /a:d'
   say; say 'Run' scmd', NO params [press ENTER]'; pull .
@@ -78,7 +78,7 @@ testPickFile: procedure
   say 'pickFile' fspec '-> "'myfile'"'
   return
 
-testPickItem: procedure expose bugs.
+testPickItemckItem: procedure expose bugs.
   parse arg doTransform
   if doTransform=0 then doTransform=''
   -- choice=pickItem(bugs.)
@@ -87,7 +87,7 @@ testPickItem: procedure expose bugs.
   say 'pickItem(bugs, "'doTransform'") -> "'choiceWithTransform'"'
   return
 
-testPickItemA: procedure
+testPickAItem: procedure
   parse arg wordlist
   mylist=.Array~new
   do w=1 to words(wordlist)
@@ -121,8 +121,9 @@ testEvalCmd: procedure expose bugs.
   say 'RC evalCmdWithChoice("'xcmd'") ->' ok
   return
 
-testExternalCmd: procedure
+testCmdTop: procedure
   parse arg xcmd
+  if xcmd='' then xcmd='echo hi there'
   firstOutput=cmdTop(xcmd)
   say 'RC cmdTop("'xcmd'") ->' firstOutput
   return
