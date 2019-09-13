@@ -1,6 +1,6 @@
 /* difr -- Diff a given filespec against the repository. */
-parse arg proj fspec
-if proj='' then call help
+parse arg fspec proj
+if abbrev('-?', fspec) then call help
 basedir='C:\Users\ACER\cjp-repos'
 
 select
@@ -9,11 +9,6 @@ select
   when proj='s' then repo=basedir'\snippy'
   when proj='xo' then repo=basedir'\x2oo'
   otherwise           repo=basedir'\x2regina'
-end
-
-if fspec='' then do
-  'dir' repo '/w'
-  return
 end
 
 fname=filespec('n', fspec)
@@ -43,8 +38,8 @@ callOptions: procedure
 
 help:
   say 'difr - Diff a given filespec against the repository.'
-  say 'usage: difr project filespec'
-  say 'projects: (g)fx (n)yttig (s)nippy xo x2regina'
+  say 'usage: difr filespec project'
+  say 'projects: (g)fx (n)yttig (s)nippy xo x2regina=default'
   exit
 
 ::requires 'UtilRoutines.rex'

@@ -25,12 +25,13 @@ exit
 uiDiff: procedure expose repodir
   parse arg repoName, localDir
   say 'Compare' repodir'\'repoName localDir
-  'wm' repodir'\'repoName localDir '/dl Repo /dr Local /e /s /wl /f *'
+  'wm' repodir'\'repoName localDir '/dl Repo /dr Local /e /s /f *'
   return
 
 getStatus: procedure expose repodir repos
   say '*** Checking Status of each repo'
   loop rdir over repos
+    if \SysFileExists(repodir'\'rdir) then iterate
     say rdir '...'
     'cd' repodir'\'rdir
     'git status -s'

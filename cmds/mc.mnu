@@ -1,6 +1,8 @@
 # Load TS editor
-H   TSEditor
-    et %f
+H   Editor
+    e %f
+H   Notepad
+    start notepad %f
 H   Diff
     dif %f %D\%f
 H   Diff UI
