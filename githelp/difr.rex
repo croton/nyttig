@@ -1,7 +1,7 @@
 /* difr -- Diff a given filespec against the repository. */
 parse arg fspec proj
 if abbrev('-?', fspec) then call help
-basedir='C:\Users\ACER\cjp-repos'
+basedir=value('userprofile',,'ENVIRONMENT')||'\crepo'
 
 select
   when proj='g' then repo=basedir'\gfx'

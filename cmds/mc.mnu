@@ -3,6 +3,8 @@ H   Editor
     e %f
 H   Notepad
     start notepad %f
+H   Open file
+    start %f
 H   Diff
     dif %f %D\%f
 H   Diff UI
