@@ -51,14 +51,14 @@ copyProfileColors: procedure
 
   pscmd='powershell -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile'
   colorcmd='Set-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable '-Value' cval
-  ADDRESS SYSTEM pscmd colorcmd
+  ADDRESS CMD pscmd colorcmd
   return colorcmd
 
 diffProfileColors: procedure
   parse arg ctable . cval, target
   if ctable='' then return ''
   pscmd='powershell -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile'
-  ADDRESS SYSTEM pscmd 'Get-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable '|grep -i ColorTable |RXQUEUE'
+  ADDRESS CMD pscmd 'Get-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable '|grep -i ColorTable |RXQUEUE'
   if queued()>0 then parse pull ttable . tval
   if cval=tval then return ctable 'same'
   else              return ctable 'Src='left(strip(cval),18) 'Target='tval
@@ -69,7 +69,7 @@ copyProfileColors2: procedure
   if right(ctable,2)='00' then return ''
 
   pscmd='powershell -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile'
-  ADDRESS SYSTEM pscmd 'Get-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable
+  ADDRESS CMD pscmd 'Get-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable
 
   return '> Set-ItemProperty -Path "HKCU:\Console\'target'" -Name' ctable '-Value' cval
 
