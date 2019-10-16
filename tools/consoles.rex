@@ -40,8 +40,8 @@ pickone: procedure
     if entry='' | lastdelim=0 then iterate
     profiles~append(substr(entry, lastdelim+1))
   end
-  choice=pickAItem(profiles)
-  say 'Selected profile:' choice
+  choice=strip(pickAItem(profiles))
+  call prompt 'start "'choice'" cmd'
   return
 
 showcolors: procedure
