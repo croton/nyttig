@@ -14,11 +14,11 @@ cmdl.inspect(insects);
 console.log('First, last='+[insects.first, insects.last]);
 
 var idx=new Number(cmdl.arg(1));
-var len=new Number(cmdl.arg(2));
-console.log('Slicing '+[idx,len]);
+var endidx=new Number(cmdl.arg(2));
+console.log('Slicing '+[idx,endidx]);
 
 try {
-  var sliced = insects.slice(idx, len);
+  var sliced = insects.slice(idx, endidx);
   console.log('New set: '+sliced);
 }
 catch (e) {

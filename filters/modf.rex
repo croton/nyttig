@@ -1,5 +1,4 @@
-/* modf -- A filter for ... */
-parse arg options
+/* modf -- A filter for cropping or replacing */
 parse arg delim +1 before (delim) after (delim) options
 
 SIGNAL ON NOTREADY NAME programEnd
@@ -11,7 +10,9 @@ do forever
   else if pos(before, data)=0 then iterate
   else do
     parse var data leading (before) between (after) trailing
+    -- Cropping
     say between
+    -- Replacing
     -- say changestr(before, data, after)
   end
 end

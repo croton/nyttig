@@ -3,13 +3,14 @@ parse arg params
 parse value parseSwitch(params) with option filenames
 select
   when params='-?' then call help
-  when option='a' then call load filenames, 'NG'
   when option='c' then call load filenames, 'CSS'
+  when option='e'  then call load filenames, 'ES6'
+  when option='g'  then call load filenames, 'GULP'
+  when option='h'  then call load filenames, 'JHC'
   when option='m' then call load filenames, 'MD'
   when option='mo' then call load filenames, 'MOCHA'
   when option='n' then call load filenames, 'NODEJS'
-  when option='r' then call load filenames, 'REACTJS'
-  when option='t' then call load filenames, 'TSCRIPT'
+  when option='p'  then call load filenames, 'PHP'
   otherwise call load filenames
 end
 exit
@@ -33,7 +34,8 @@ parseSwitch: procedure
 
 load: procedure
   parse arg filenames, profile
-  winprof='Tall'
+  winprof=value('winprof',,'ENVIRONMENT')
+  if winprof='' then winprof='CmdLine'
   xcmd='start "'winprof'" cmd /C "title X2 & x' strip(filenames)'"'
   /* xcmd='x' filenames */
   if profile='' then ADDRESS CMD xcmd
