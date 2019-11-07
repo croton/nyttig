@@ -1,14 +1,29 @@
-/* namex -- A filter for expanding a name into varying version. */
+/* namexf -- A filter for expanding a name into varying versions. */
 parse arg options
-
-SIGNAL ON NOTREADY NAME programEnd
-SIGNAL ON ERROR    NAME programEnd
-do forever
-  parse pull data
-  if data='' then iterate
-  say expandByOption(data, '-default' options)
-end
+if .STDIN~chars then call pipe options
+else call help
 exit
+
+pipe: procedure
+  parse arg options
+  SIGNAL ON NOTREADY NAME programEnd
+  SIGNAL ON ERROR    NAME programEnd
+  do forever
+    parse pull data
+    if data='' then iterate
+    say expandByOption(data, '-default' options)
+  end
+  return
+
+help:
+  say 'namx - A filter for expanding a name into varying versions'
+  say 'usage: namxf [options]'
+  say '  -u1 = uppercase first char'
+  say '  -c = camelcase (lowercase first char)'
+  say '  -d = insert dash at each word'
+  say '  -u = insert underscore at each word'
+  say '  -default = concatenate words, do not change case'
+  return
 
 expandByOption: procedure
   parse arg phrase, options
