@@ -8,7 +8,8 @@ select
   when proj='n' then repo=basedir'\nyttig'
   when proj='s' then repo=basedir'\snippy'
   when proj='xo' then repo=basedir'\x2oo'
-  otherwise           repo=basedir'\x2regina'
+  when proj='l' then repo=basedir'\laratools'
+  otherwise          repo=basedir'\x2regina'
 end
 
 fname=filespec('n', fspec)
@@ -39,7 +40,7 @@ callOptions: procedure
 help:
   say 'difr - Diff a given filespec against the repository.'
   say 'usage: difr filespec project'
-  say 'projects: (g)fx (n)yttig (s)nippy xo x2regina=default'
+  say 'projects: (g)fx (l)aratools (n)yttig (s)nippy xo x2regina=default'
   exit
 
 ::requires 'UtilRoutines.rex'

@@ -12,7 +12,9 @@ bugs.6='cicada'
 bugs.0=6
 
 select
-  when pfx='run' then call testRunCmd params
+  when pfx='run' then call testRun params
+  when pfx='runcmd' then call testRunCmd params
+  when pfx='ask' then call testAsk params
   when pfx='gso' then call testShowSourceOptions params
   when pfx='ac' then call testApplyCmd
   when pfx='aca' then call testApplyCmdA
@@ -65,6 +67,24 @@ testRunCmd: procedure
   call runcmd scmd, 0
   say; say 'Run' scmd', param=YES [press ENTER]'; pull .
   call runcmd scmd, YES
+  return
+
+testRun: procedure
+  parse arg xcmd
+  if xcmd='' then xcmd='dir /b /a:d'
+  say 'Testing "run" method with cmd: ['xcmd']'
+  rcode=run(xcmd)
+  if rcode<0 then say 'Command was cancelled.'
+  else say 'Command was run and returned' rcode
+  return
+
+testAsk: procedure
+  parse arg xcmd
+  if xcmd='' then xcmd='Enter your favorite color:'
+  say 'Testing "ask(q)" method with q: ['xcmd']'
+  say 'returns' ask(xcmd)
+  say 'Testing "ask(q,0)" method with q: ['xcmd']'
+  say 'returns' ask(xcmd, 0)
   return
 
 testShowSourceOptions: procedure

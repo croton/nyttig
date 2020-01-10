@@ -4,8 +4,8 @@ if choice='-?' then call help
 
 basedir=value('userprofile',,'ENVIRONMENT')
 homedir=basedir'\cjp'
-repodir=basedir'\cjp-repos'
-repos=.array~of('gfx', 'nyttig', 'gitx', 'snippy', 'x2regina', 'x2oo')
+repodir=basedir'\crepo'
+repos=.array~of('gfx', 'nyttig', 'gitx', 'snippy', 'x2regina', 'x2oo', 'laratools')
 
 if choice='' then do
   say 'Select a repository:'
@@ -18,6 +18,7 @@ select
   when choice='snippy' then call uiDiff choice, homedir'\snips'
   when choice='x2regina' then call uiDiff choice, homedir'\x2'
   when choice='x2oo' then call uiDiff choice, homedir'\x2'
+  when choice='laratools' then call uiDiff choice, homedir'\bin\lara'
   otherwise call getStatus
 end
 exit
@@ -41,7 +42,7 @@ getStatus: procedure expose repodir repos
 help:
   say 'drepo - Diff a repository'
   say 'usage: drepo [name]'
-  say '  gfx nyttig, snippy, x2regina, x2oo'
+  say '  gfx nyttig snippy x2regina x2oo'
   exit
 
 ::requires 'UtilRoutines.rex'
