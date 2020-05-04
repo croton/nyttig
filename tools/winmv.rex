@@ -164,6 +164,8 @@ help:
   say '  -v T = flush top'
   say '  -v B = flush bottom, left screen'
   say '  -v BR = flush bottom, right screen'
+  say '  -n digits = nudge horizontally by digits'
+  say '  -nv digits = nudge vertically by digits'
   say '  -c NW | NE | SW | SE = left screen corners'
   say '  -c NW2 | NE2 | SW2 | SE2 = right screen corners'
   exit

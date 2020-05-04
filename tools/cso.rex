@@ -1,8 +1,9 @@
-/* consoles - view information about the configured console windows */
+/* cso - view information about the configured console windows */
 parse arg pfx params
 select
   when pfx='-?' then call help
-  when pfx='p' then call showConsoleNames 1
+  when pfx='s' then call queryConsoleNames 1
+  when pfx='q' then call queryConsoleNames
   when pfx='c' then call showConsoleColors
   when pfx='cp' then call copycolors params
   when pfx='d' then call diffcolors2 params
@@ -11,19 +12,33 @@ end
 exit
 
 help:
-  say 'consoles - Look up colors for a given console'
+  say 'cso - Manage consoles'
   say "usage: consoles [options]"
   say 'options'
   say '  -? = help'
+  say '  s = start a console'
+  say '  q = query a console'
+  say '  c = query console colors'
+  say 'default = show names of all console profiles'
+  /*
   say '  a name = show all properties of a given console'
-  say '  c name = show color properties of a given console'
   say '  d src target = diff colors from src and target profiles'
   say '  cp src target = copy colors from src profile to target'
-  say '  p = pick a console profile'
-  say 'default = show names of all console profiles'
+  */
   exit
 
 showConsoleNames: procedure
+  r = .WindowsRegistry~new
+  if r~open(r~Current_User, 'Console')=0 then return
+  if r~List(,keys.)=0 then do
+    say 'Available Consoles:'
+    do i over keys.
+      say ' ' keys.i
+    end i
+  end
+  return
+
+queryConsoleNames: procedure
   arg doLoad
   r = .WindowsRegistry~new
   if r~open(r~Current_User, 'Console')=0 then return
@@ -33,18 +48,19 @@ showConsoleNames: procedure
       choices~append(keys.i)
     end i
     choice=pickAItem(choices)
-  end
-  if r~open(r~Current_User, 'Console\'choice)<>0 then do
-    if doLoad=1 then
-      call prompt 'start "'choice'" cmd'
-    else do
-      say 'Attributes of Console\'choice':'
-      q.=r~query
-      if r~ListValues(,vals.)=0 then do i=1 to q.values
-        say ' ' vals.i.name '=' vals.i.data -- '('vals.i.type')'
-      end
+    if doLoad=1 then do
+      'start "'choice'" cmd'
     end
-  end
+    else do
+      if r~open(r~Current_User, 'Console\'choice)<>0 then do
+        say 'Attributes of Console\'choice':'
+        q.=r~query
+        if r~ListValues(,vals.)=0 then do i=1 to q.values
+          say ' ' vals.i.name '=' vals.i.data -- '('vals.i.type')'
+        end
+      end -- open selected console
+    end -- show specific console attributes
+  end -- query consoles
   return
 
 showConsoleColors: procedure
