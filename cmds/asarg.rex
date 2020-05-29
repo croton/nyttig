@@ -13,7 +13,7 @@ if staticArgsFirst then do
   if nospace then do forever
     dynoArgs=linein()
     if dynoArgs='' then iterate
-    program staticArgs||dynoArgs
+    program strip(staticArgs)||strip(dynoArgs)
   end
   else do forever
     dynoArgs=linein()
@@ -25,7 +25,7 @@ else do
   if nospace then do forever
     dynoArgs=linein()
     if dynoArgs='' then iterate
-    program dynoArgs||staticArgs
+    program strip(dynoArgs)||strip(staticArgs)
   end
   else do forever
    dynoArgs=linein()

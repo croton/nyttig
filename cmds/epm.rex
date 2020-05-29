@@ -1,16 +1,20 @@
 /* epm -- Load X2 editor */
 parse arg params
+w=wordpos('-t',params)
+if w>0 then do; windowTitle=word(params,w+1); params=delword(params,w,2); end; else windowTitle=''
+
 parse value parseSwitch(params) with option filenames
 select
   when params='-?' then call help
-  when option='c' then call load filenames, 'CSS'
+  when option='c'  then call load filenames, 'CSS'
   when option='e'  then call load filenames, 'ES6'
   when option='g'  then call load filenames, 'GULP'
   when option='h'  then call load filenames, 'JHC'
-  when option='m' then call load filenames, 'MD'
-  when option='mo' then call load filenames, 'MOCHA'
-  when option='n' then call load filenames, 'NODEJS'
+  when option='m'  then call load filenames, 'MD'
+  when option='je' then call load filenames, 'JEST'
+  when option='n'  then call load filenames, 'NODEJS'
   when option='p'  then call load filenames, 'PHP'
+  when option='r'  then call load filenames, 'REACTJS'
   otherwise call load filenames
 end
 exit
@@ -32,30 +36,32 @@ parseSwitch: procedure
   end i
   return option filenames
 
-load: procedure
+load: procedure expose windowTitle
   parse arg filenames, profile
   winprof=value('winprof',,'ENVIRONMENT')
   if winprof='' then winprof='CmdLine'
-  xcmd='start "'winprof'" cmd /C "title X2 & x' strip(filenames)'"'
+  if windowTitle='' then windowTitle='X2'
+  xcmd='start "'winprof'" cmd /C "title' windowTitle '& x' strip(filenames)'"'
   /* xcmd='x' filenames */
   if profile='' then ADDRESS CMD xcmd
   else do
     profilepath=value('X2HOME',,'ENVIRONMENT')||'\'profile'.PRO'
-    if SysFileExists(profilepath) then xcmd='start "'winprof'" cmd /C "x -P'profilepath strip(filenames)'"'
+    if SysFileExists(profilepath) then
+      xcmd='start "'winprof'" cmd /C "title' windowTitle '& x -P'profilepath strip(filenames)'"'
     /* xcmd='x -P'profilepath filenames */
     ADDRESS CMD xcmd
   end
   return
 
-help:
+help: procedure
   say 'epm - X2 editor'
-  say 'usage: epm [-profile] [files]'
+  say 'usage: epm [-t window_title][-profile] [files]'
   say 'profiles:'
   parse source . . srcfile .
-  ADDRESS CMD 'grep -i "when option"' srcfile '|RXQUEUE'
-  do while queued()>0
-    parse pull . '=' entry . action
+  call SysFileSearch 'when option', srcfile, 'found.', 'N'
+  do j=1 to found.0
+    parse value found.j with . '=' entry . action
     if entry='' then iterate
     say ' ' left(entry, 12, '.') word(action, words(action))
-  end
+  end j
   exit

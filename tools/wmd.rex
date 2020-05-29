@@ -14,15 +14,17 @@ if w>0 then do; title=word(options,w+1); options=delword(options,w,2); end; else
 w=wordpos('-fg',options)
 if w>0 then do; fg=word(options,w+1); options=delword(options,w,2); end; else fg=''
 
-ADDRESS CMD 'start cmd /K' winsetup(rows, cols, title, fg)
+if title='' then
+  ADDRESS CMD 'start cmd /K' winsetup(rows, cols, fg)
+else
+  ADDRESS CMD 'start "'title'" cmd /K' winsetup(rows, cols, fg)
 exit
 
 winsetup: procedure
-  parse arg rows, cols, title, color
+  parse arg rows, cols, color
   if \datatype(rows,'W') then rows=30
   if \datatype(cols,'W') then cols=110
   xcmd='mode con cols='cols 'lines='rows
-  if title<>'' then xcmd=xcmd '& title' title
   if color<>'' then xcmd=xcmd '& color F'translateColor(color)
   return '"'xcmd'"'
 

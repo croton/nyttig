@@ -36,7 +36,7 @@ showCfg: procedure
   return
 
 ssh: procedure expose repo
-  sshKey='c:\cjp\ssh\id_rsa'
+  sshKey=value('USERPROFILE',,'ENVIRONMENT')||'\cjp\ssh\id_rsa'
   sshAdd='c:\MyTools\Git\usr\bin\ssh-add'
   say 'Start ssh agent ...'
   'start-ssh-agent'
