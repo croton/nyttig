@@ -1,16 +1,24 @@
 ::requires 'UtilRoutines.rex'
 
 ::routine version public
-  return '0.15'
+  return '0.16'
 
 ::routine getBranch public
   currBranch=''
-  ADDRESS CMD 'git branch |RXQUEUE'
-  do while queued()>0
-    parse pull entry
-    if left(entry,1)='*' then currBranch=word(entry, 2)
+  branches=cmdout('git branch')
+  loop item over branches
+    if left(item,1)='*' then currBranch=word(item, 2)
   end
   return currBranch
+
+::routine editBranch PUBLIC
+  parse arg method, remote branchName
+  if abbrev('PUSH', translate(method)) then gcmd='git push'
+  else                                      gcmd='git pull'
+  if remote='' then remote='origin'
+  if branchName='' then branchName=getBranch()
+  call prompt gcmd remote branchName
+  return
 
 /* Return a stem of local branch names, with current branch
    stored at the index, CURRENT.
@@ -65,30 +73,78 @@
   ADDRESS CMD gcmd
   return rc
 
-/* See the commit log entries for a given file */
-::routine logfile public
-  parse arg fspec
-  fn=pickFile(fspec)
-  gcmd=''
-  if fn='' then say 'No file specified'
-  else do
-    gcmd='git log --pretty=format:"%h %aD: %s" --follow' fn
-    call prompt gcmd
+/* View the change history for a given file */
+::routine logByFile PUBLIC
+  parse arg filespec fromDate patch
+  if abbrev('-?', filespec) then do
+    say 'logByFile filespec [fromDate] [patch]'
+    say '  fromDate = [yyyyMmDd | days]'
+    return
   end
-  return gcmd
+  fn=pickFile(filespec)
+  if fn='' then return
+  if fromDate='' | fromDate='.' then
+    gcmd='git log --pretty=format:"%h %aD: %s" --follow'
+  else
+    gcmd='git log --pretty=format:"%h %aD: %s"' translateLogArgs('-d' fromDate) '--follow'
+  if patch='' then gcmd=gcmd fn
+  else             gcmd=gcmd '-p' fn
+  call prompt gcmd
+  return
 
 ::routine viewfile public
   parse arg fspec rev
   fn=pickFile(fspec)
-  gcmd=''
-  if fn='' then say 'No file specified'
-  else do
-    fnt=translate(fn, '/', '\')
-    if rev='' then gcmd='git show' fnt
-    else           gcmd='git show' hd(rev)':'fnt
-    call prompt gcmd
+  if fn='' then do
+    say 'No file specified'
+    return ''
   end
+  if rev='' then do
+    sha=selectRevision()
+    if sha<>'' then rev=word(sha,1)
+  end
+  fnt=translate(fn, '/', '\')
+  if rev='' then gcmd='git show' fnt
+  else           gcmd='git show' hd(rev)':'fnt
+  call prompt gcmd
   return gcmd
+
+/* Compare a currently changed file or one from a given commit */
+::routine diffByFile PUBLIC
+  parse arg sha, useGUI
+  if useGUI='' then useGUI=0
+  else              useGUI=1
+  if sha='' then files.=queryChangedfiles()
+  else do
+    refSha=hd(sha)
+    results=cmdOut('git show --abbrev-commit --name-only --pretty=""' refSha)
+    ctr=0
+    loop item over results
+      ctr=ctr+1
+      files.ctr=strip(translate(item, '\', '/'))
+    end
+    files.0=ctr
+  end
+  select
+    when files.0=0 then do
+      say 'No files to diff' sha
+      return
+    end
+    when files.0=1 then fnum=1
+    otherwise
+      say 'Diff which file?'
+      fnum=pickIndex(files.)
+  end
+  if fnum='' then do
+    say 'Selaction cancelled'
+    return
+  end
+  if useGUI then gcmd='git difftool'
+  else           gcmd='git diff'
+  if sha='' then params=files.fnum
+  else           params=refSha 'HEAD --' files.fnum
+  call runcmd gcmd params, 1
+  return
 
 ::routine compareAdjacentCommits public
   parse arg fspec rev
@@ -132,6 +188,47 @@
   end
   return gcmd
 
+::routine commit PUBLIC
+  parse arg inclAll, message
+  if message='' then do
+    say 'Cannot commit with empty message!'
+    return
+  end
+  if inclAll then gcmd='git commit -m "'message'" -a'
+  else            gcmd='git commit -m "'message'"'
+  call prompt gcmd
+  return
+
+::routine branchUpstream PUBLIC
+  parse arg remoteBranch
+  if remoteBranch='' then do
+    brn=getBranch()
+    gcmd='git branch --set-upstream-to=origin/'brn
+  end
+  else gcmd='git branch --set-upstream-to=origin/'remoteBranch
+  say gcmd
+  return
+
+::routine rollbackfile PUBLIC
+  parse arg fspec rev
+  gcmd='git checkout'
+  fn=pickFile(fspec)
+  if fn='' then do
+    say 'No file specified'
+    return
+  end
+  if rev='' then do
+    sha=selectRevision()
+    if sha='' then do
+      say 'Selection cancelled'
+      return
+    end
+    else gcmd=gcmd word(sha,1)
+  end
+  else gcmd=gcmd rev
+  call prompt gcmd '--' fn
+  return
+
 /* Prompt to roll back changes among files currently modified */
 ::routine applyCmd2ChangedFiles public
   parse arg gcmd, promptMessage
@@ -159,6 +256,41 @@
   files.0=ctr
   return files.
 
+/* Run git show with convenience shortcuts for HEAD spec */
+::routine showByHead PUBLIC
+  parse arg option, sha verbose
+  gcmd='git show' option hd(sha)
+  if sha='-?' then say 'showByHead git-show-option [sha] [verbose]'
+  else do
+    if verbose<>'' then say gcmd
+    ADDRESS CMD gcmd
+  end
+  return
+
+
+/* Show changed files from git status, with some filtering */
+::routine showChanged PUBLIC
+  parse arg sha
+  if sha='' then do
+    files.=queryChangedfiles()
+    do i=1 to files.0
+      say files.i
+    end i
+  end
+  else do
+    refSha=hd(sha)
+    gcmd='git show --abbrev-commit --name-only --pretty=oneline' refSha
+    ADDRESS CMD gcmd '|RXQUEUE'
+    parse pull comment
+    say comment
+    do while queued()>0
+      parse pull . 'src/' entry
+      if entry='' then iterate
+      say strip(translate(entry, '\', '/'))
+    end
+  end
+  return
+
 /* Provide convenient substitutions for git log options */
 ::routine translateLogArgs public
   parse arg options
@@ -168,7 +300,7 @@
   if w>0 then do; author=word(options,w+1); options=delword(options,w,2); end; else author=''
   if since<>'' then do
     datestr='yesterday'
-    if verify(since, '0123456789')=0 then do
+    if datatype(since, 'W') then do
       if length(since)=8 then datestr=translate('Mm/Dd/CcYy', since, 'CcYyMmDd')
       else if length(since)<=3 then datestr=since 'days'
     end
@@ -217,8 +349,15 @@
   return gcmd
 
 ::routine addUntracked public
+  arg doPrompt
   untracked=cmdOut('git ls-files . --exclude-standard --others')
   if untracked~items=0 then say 'There are NO untracked files'
-  else call applyCmd2AEach 'git add', untracked, 1
+  else call applyCmd2AEach 'git add', untracked, (doPrompt=1)
   return
 
+::routine selectRevision
+  commits=cmdOut('git log --pretty=format:"%h %s" -n 15')
+  if commits~items=0 then return ''
+  else choice=pickAItem(commits)
+  if choice='' then return ''
+  return word(choice,1)
