@@ -1,17 +1,24 @@
-# Load TS editor
-H   Editor
+e   Editor
     e %f
-H   Notepad
+n   Notepad
     start notepad %f
-H   Open file
+o   Open file
     start %f
-H   Diff
-    dif %f %D\%f
-H   Diff UI
+f   Diff
+    dif %f %D\%f & pause
+d   Diff UI
     wm %f %D\%f
-H   Paste filename
+D   Diff Dir
+    wm %d %D
+p   Paste filename
     echo %f|gc
-H   Git diff
+g   Git diff
     start "Git-Diff" cmd /C git diff %f
-H   Git difftool
+t   Git difftool
     start "Git-Diff" cmd /C git difftool %f
+j   ES6-editor
+    ejs %f
+h   PHP-editor
+    ephp %f
+l   Edit Selected
+    loadfiles %t

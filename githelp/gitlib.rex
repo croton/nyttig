@@ -1,7 +1,7 @@
 ::requires 'UtilRoutines.rex'
 
 ::routine version public
-  return '0.16'
+  return '0.17'
 
 ::routine getBranch public
   currBranch=''
@@ -10,6 +10,15 @@
     if left(item,1)='*' then currBranch=word(item, 2)
   end
   return currBranch
+
+-- Get all branches except for current
+::routine getAvailableBranches PUBLIC
+  availableBranches=.array~new
+  branches=cmdOut('git branch')
+  loop item over branches
+    if left(item,1)<>'*' then availableBranches~append(strip(item))
+  end
+  return availableBranches
 
 ::routine editBranch PUBLIC
   parse arg method, remote branchName
@@ -24,19 +33,14 @@
    stored at the index, CURRENT.
 */
 ::routine getBranches public
-  gcmd='git branch'
-  branches.0=0
-  ADDRESS CMD gcmd '|RXQUEUE'
   ctr=0
-  do while queued()>0
-    parse pull entry
-    if left(entry,1)='*' then do
-      parse var entry . entry
-      branches.CURRENT=entry
-    end
+  branches.0=ctr
+  branchnames=cmdOut('git branch')
+  loop item over branchnames
+    if left(item,1)='*' then branches.CURRENT=word(item, 2)
     else do
       ctr=ctr+1
-      branches.ctr=strip(entry)
+      branches.ctr=strip(item)
     end
   end
   branches.0=ctr
@@ -73,6 +77,49 @@
   ADDRESS CMD gcmd
   return rc
 
+::routine cleanBranches PUBLIC
+  branches2del=arrfilter(cmdOut('git branch --merged master',1), 'master')
+  if branches2del~items=0 then do
+    say 'No disposible branches exist; all have unmerged changes.'
+    return
+  end
+  say 'Select an already-merged branch to remove:'
+  branch=pickAItem(branches2del)
+  if branch<>'' then call prompt 'git branch -d' strip(branch)
+  return
+
+::routine branchUpstream PUBLIC
+  parse arg remoteBranch
+  if remoteBranch='' then do
+    brn=getBranch()
+    gcmd='git branch --set-upstream-to=origin/'brn
+  end
+  else gcmd='git branch --set-upstream-to=origin/'remoteBranch
+  say gcmd
+  return
+
+::routine rebaseBranch PUBLIC
+  parse arg targetBranch
+  sourceBranch='master'
+  currBranch=getBranch()
+  if targetBranch='' then do
+    say 'Choose a branch to be rebased (curr='currBranch'):'
+    targetBranch=pickAItem(getAvailableBranches())
+    if targetBranch='master' | targetBranch='' then return
+  end
+  call prompt 'git rebase' currBranch targetBranch
+  return
+
+::routine mergeBranch PUBLIC
+  parse arg targetBranch
+  if targetBranch='' then do
+    say 'Choose a branch to be merged (curr='getBranch()'):'
+    targetBranch=pickAItem(getAvailableBranches())
+    if targetBranch='' then return
+  end
+  call prompt 'git merge' targetBranch
+  return
+
 /* View the change history for a given file */
 ::routine logByFile PUBLIC
   parse arg filespec fromDate patch
@@ -89,9 +136,43 @@
     gcmd='git log --pretty=format:"%h %aD: %s"' translateLogArgs('-d' fromDate) '--follow'
   if patch='' then gcmd=gcmd fn
   else             gcmd=gcmd '-p' fn
-  call prompt gcmd
+  call runcmd gcmd
   return
 
+/* Show logs according to date and/or author */
+::routine logByDateAuthor PUBLIC
+  parse arg params
+  gcmd='git log'
+  if params='-?' then do
+    say 'logCustom [log-options][-d date-expr][-a author]'
+    say '  date-expr = [yyyyMmDd | days]'
+    return
+  end
+  logFormat='--pretty=format:"%h %aD %s"'
+  if params='' | datatype(params,'W') then
+    call runcmd gcmd logFormat '-n' getnum(params,10)
+  else do
+    logOptions=translateLogArgs(params)
+    if pos('--author', logOptions)>0 then logFormat='--pretty=format:"%h %ar [%an] %s"'
+    call runcmd gcmd logFormat logOptions
+  end
+  return
+
+::routine showLastLogs PUBLIC
+  arg count
+  defaultCount=10
+  gcmd='git show --name-only --oneline'
+  ADDRESS CMD gcmd
+  if datatype(count,'W') then do
+    if count<2 then count=2
+    else if count>10 then count=defaultCount
+    do i=1 to count-1
+      ADDRESS CMD gcmd 'HEAD~'i
+    end i
+  end
+  return
+
+-- View a file at a given revision
 ::routine viewfile public
   parse arg fspec rev
   fn=pickFile(fspec)
@@ -136,7 +217,7 @@
       fnum=pickIndex(files.)
   end
   if fnum='' then do
-    say 'Selaction cancelled'
+    say 'Selection cancelled'
     return
   end
   if useGUI then gcmd='git difftool'
@@ -199,16 +280,6 @@
   call prompt gcmd
   return
 
-::routine branchUpstream PUBLIC
-  parse arg remoteBranch
-  if remoteBranch='' then do
-    brn=getBranch()
-    gcmd='git branch --set-upstream-to=origin/'brn
-  end
-  else gcmd='git branch --set-upstream-to=origin/'remoteBranch
-  say gcmd
-  return
-
 ::routine rollbackfile PUBLIC
   parse arg fspec rev
   gcmd='git checkout'
@@ -227,6 +298,61 @@
   end
   else gcmd=gcmd rev
   call prompt gcmd '--' fn
+  return
+
+::routine viewtag PUBLIC
+  parse arg tagname
+  if tagname='' then tagname=selectTag()
+  if tagname='' then return
+  'git show' tagname
+  return
+
+::routine pushtag PUBLIC
+  parse arg tagname
+  if tagname='' then tagname=selectTag()
+  if tagname='' then return
+  call prompt 'git push origin' tagname
+  return
+
+::routine maketag PUBLIC
+  parse arg tagname message, doPush
+  if tagname='' then do
+    say 'maketag tagname'
+    return
+  end
+  if message='' then gcmd='git tag -a' tagname '-m "Version' tagname'"'
+  else               gcmd='git tag -a' tagname '-m "'message'"'
+  call prompt gcmd
+  if doPush=1 then call prompt 'git push origin' tagname
+  say 'Current tags'; 'git tag'
+  return
+
+::routine cloneProject public
+  parse arg name
+  gcmd='git clone https://github.com/croton/'name'.git'
+  call prompt gcmd
+  return gcmd
+
+::routine checkoutRemote public
+  parse arg name
+  say 'Fetching ...'
+  'git fetch origin'
+  gcmd='git branch -r'
+  branches=cmdout(gcmd)
+  if branches~items>0 then branches~delete(branches~first) -- ignore HEAD
+  choice=pickAItem(branches)
+  if choice='' then say 'No branch selected'
+  else do
+    parse var choice prefix '/' branchname
+    call prompt 'git checkout' branchname
+  end
+  return gcmd
+
+::routine addUntracked public
+  arg doPrompt
+  untracked=cmdOut('git ls-files . --exclude-standard --others')
+  if untracked~items=0 then say 'There are NO untracked files'
+  else call applyCmd2AEach 'git add', untracked, (doPrompt=1)
   return
 
 /* Prompt to roll back changes among files currently modified */
@@ -256,6 +382,12 @@
   files.0=ctr
   return files.
 
+::routine showStatus PUBLIC
+  parse arg options
+  say 'Changes on branch' getBranch()
+  'git status -s' options
+  return
+
 /* Run git show with convenience shortcuts for HEAD spec */
 ::routine showByHead PUBLIC
   parse arg option, sha verbose
@@ -266,7 +398,6 @@
     ADDRESS CMD gcmd
   end
   return
-
 
 /* Show changed files from git status, with some filtering */
 ::routine showChanged PUBLIC
@@ -327,37 +458,15 @@
   if datatype(numval,'W') & numval<=maxval then return numval
   return 1
 
-::routine cloneProject public
-  parse arg name
-  gcmd='git clone https://github.com/croton/'name'.git'
-  call prompt gcmd
-  return gcmd
-
-::routine checkoutRemote public
-  parse arg name
-  say 'Fetching ...'
-  'git fetch origin'
-  gcmd='git branch -r'
-  branches=cmdout(gcmd)
-  if branches~items>0 then branches~delete(branches~first) -- ignore HEAD
-  choice=pickAItem(branches)
-  if choice='' then say 'No branch selected'
-  else do
-    parse var choice prefix '/' branchname
-    call prompt 'git checkout' branchname
-  end
-  return gcmd
-
-::routine addUntracked public
-  arg doPrompt
-  untracked=cmdOut('git ls-files . --exclude-standard --others')
-  if untracked~items=0 then say 'There are NO untracked files'
-  else call applyCmd2AEach 'git add', untracked, (doPrompt=1)
-  return
-
 ::routine selectRevision
   commits=cmdOut('git log --pretty=format:"%h %s" -n 15')
   if commits~items=0 then return ''
   else choice=pickAItem(commits)
   if choice='' then return ''
   return word(choice,1)
+
+::routine selectTag
+  tags=cmdOut('git tag')
+  if tags~items=0 then return ''
+  return pickAItem(tags)
+

@@ -1,6 +1,6 @@
 /* merger -- merge a template with dynamic values */
 parse arg fin values -- template and values
-if values='' then do
+if fin='' then do
   say 'Usage: merger template values'
   exit 1
 end
@@ -39,8 +39,9 @@ merge: procedure
       line=changestr(ph||w, line, val)
     end
   end
-  else do w=1 to words(tokens)
-    line=changestr(ph||w, line, word(tokens, w))
+  else do w=1 to max(words(tokens),10)
+    if pos(ph||w, line)>0 then
+      line=changestr(ph||w, line, word(tokens, w))
   end w
   if pos('?d', line)>0 then line=changestr('?d', line, datestamp())
   return line

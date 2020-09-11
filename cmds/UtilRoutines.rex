@@ -14,8 +14,8 @@
 ::routine ask public
   parse arg q, useCase
   call charout , q' '
-  if useCase='' then pull ans
-  else               parse pull ans
+  if abbrev('1', useCase) then parse pull ans
+  else pull ans
   return ans
 
 /* Prompt user with a Yes/No question */
@@ -196,11 +196,15 @@
 
 /* Return lines of output from a given command */
 ::routine cmdOut public
-  parse arg xcmd
+  parse arg xcmd, dostrip
   entries=.Array~new
   if xcmd='' then return entries
   ADDRESS CMD xcmd '|RXQUEUE'
-  do while queued()>0
+  if dostrip=1 then do while queued()>0
+    parse pull entry
+    entries~append(strip(entry))
+  end
+  else do while queued()>0
     parse pull entry
     entries~append(entry)
   end
@@ -235,8 +239,9 @@
       line=changestr(ph||w, line, val)
     end
   end
-  else do w=1 to words(tokens)
-    line=changestr(ph||w, line, word(tokens, w))
+  else do w=1 to max(words(tokens),10)
+    if pos(ph||w, line)>0 then
+      line=changestr(ph||w, line, word(tokens, w))
   end w
   if pos('?d', line)>0 then line=changestr('?d', line, translate('CcYy-Mm-Dd', date('s'), 'CcYyMmDd'))
   return line
@@ -279,10 +284,24 @@
   return idx
 
 /* A ternary operator */
-::routine ter public
+::routine ? public
   parse arg expr, yesvalue, novalue
   if expr=1 then return yesvalue
   return novalue
+
+/* Filter an array with a list of items to exclude */
+::routine arrfilter PUBLIC
+  use arg source, excludeList
+  if excludeList~class=.string then do
+    noinclude=.array~new
+    do w=1 to words(excludeList)
+      noinclude~append(word(excludeList,w))
+    end w
+  end
+  else if excludeList~class=.array then noinclude=excludeList
+  else noinclude=.array~new
+  if noinclude~items=0 then return source
+  return source~difference(noinclude)
 
 /* Get value of a given switch within a string.
    Ex. parseOption('-dir', '-dir \myfolder -other 1') -- returns '\myfolder'

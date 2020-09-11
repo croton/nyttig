@@ -2,155 +2,152 @@
 parse arg pfx params
 select
   when pfx='-?' then call help
-  when pfx='s' then call queryConsoleNames 1
-  when pfx='q' then call queryConsoleNames
-  when pfx='c' then call showConsoleColors
-  when pfx='cp' then call copycolors params
-  when pfx='d' then call diffcolors2 params
+  when pfx='s' then call launchConsole params
+  when pfx='q' then call queryConsole params
+  when pfx='c' then call queryConsoleColors params
+  when pfx='p' then call showPalette params
+  when pfx='r' then call colorReport params
+  when pfx='copy' then call copyColors params
+  when pfx='change' then call changeColorRGB params
+  when pfx='x' then call changeColor params
   otherwise call showConsoleNames
 end
 exit
 
 help:
   say 'cso - Manage consoles'
-  say "usage: consoles [options]"
+  say "usage: cso [options]"
   say 'options'
   say '  -? = help'
   say '  s = start a console'
   say '  q = query a console'
   say '  c = query console colors'
+  say '  p = query console color palette'
+  say '  r = generate HTML color summary for console'
+  say '  copy source target = copy console colors'
+  say '  change name index RGBvalues = change a console color'
   say 'default = show names of all console profiles'
-  /*
-  say '  a name = show all properties of a given console'
-  say '  d src target = diff colors from src and target profiles'
-  say '  cp src target = copy colors from src profile to target'
-  */
   exit
 
 showConsoleNames: procedure
-  r = .WindowsRegistry~new
-  if r~open(r~Current_User, 'Console')=0 then return
-  if r~List(,keys.)=0 then do
-    say 'Available Consoles:'
-    do i over keys.
-      say ' ' keys.i
-    end i
+  cl=.ConsoleLib~new
+  cnames=cl~getConsoles
+  loop item over cnames
+    say item
   end
   return
 
-queryConsoleNames: procedure
-  arg doLoad
-  r = .WindowsRegistry~new
-  if r~open(r~Current_User, 'Console')=0 then return
-  if r~List(,keys.)=0 then do
-    choices=.array~new
-    do i over keys.
-      choices~append(keys.i)
-    end i
-    choice=pickAItem(choices)
-    if doLoad=1 then do
-      'start "'choice'" cmd'
-    end
-    else do
-      if r~open(r~Current_User, 'Console\'choice)<>0 then do
-        say 'Attributes of Console\'choice':'
-        q.=r~query
-        if r~ListValues(,vals.)=0 then do i=1 to q.values
-          say ' ' vals.i.name '=' vals.i.data -- '('vals.i.type')'
-        end
-      end -- open selected console
-    end -- show specific console attributes
-  end -- query consoles
-  return
-
-showConsoleColors: procedure
-  r = .WindowsRegistry~new
-  if r~open(r~Current_User, 'Console')=0 then return
-  if r~List(,keys.)=0 then do
-    choices=.array~new
-    do i over keys.
-      choices~append(keys.i)
-    end i
-    choice=pickAItem(choices)
+launchConsole: procedure
+  parse arg consolename
+  if consolename='' then do
+    cl=.ConsoleLib~new
+    consolename=pickAItem(cl~getConsoles)
+    if consolename='' then return
   end
-  if r~open(r~Current_User, 'Console\'choice)<>0 then do
-    say 'Colors of Console\'choice':'
-    q.=r~query
-    if r~ListValues(,vals.)=0 then do i=1 to q.values
-      if pos('COLORTABLE', translate(vals.i.name))=0 then iterate
-      say ' ' substr(vals.i.name,11) d2rgb(vals.i.data) vals.i.data
-    end
+  'start "'consolename'" cmd'
+  return
+
+queryConsole: procedure
+  parse arg consolename
+  cl=.ConsoleLib~new
+  if consolename='' then do
+    consolename=pickAItem(cl~getConsoles)
+    if consolename='' then return
+  end
+  cl~listConsoleAttributes(consolename)
+  return
+
+queryConsoleColors: procedure
+  parse arg consolename
+  cl=.ConsoleLib~new
+  if consolename='' then do
+    consolename=pickAItem(cl~getConsoles)
+    if consolename='' then return
+  end
+  cl~listConsoleColors(consolename)
+  return
+
+changeColor: procedure
+  parse arg consolename colorIndex colorValue
+  -- 1=black, 16=white, index 2 indicates color after black
+  cl=.ConsoleLib~new
+  if consolename='' then do
+    consolename=pickAItem(cl~getConsoles)
+    if consolename='' then return
+  end
+  if askYN('Change' consolename 'color field' colorIndex 'to' colorValue'?') then
+    cl~setColor(consolename, colorIndex, colorValue)
+  return
+
+changeColorRGB: procedure
+  parse arg consolename colorIndex colorValue
+  -- 1=black, 16=white, index 2 indicates color after black
+  cl=.ConsoleLib~new
+  if consolename='' then do
+    consolename=pickAItem(cl~getConsoles)
+    if consolename='' then return
+  end
+  if askYN('Change' consolename 'color field' colorIndex 'to' colorValue'?') then
+    cl~setColorRGB(consolename, colorIndex, colorValue)
+  return
+
+showPalette: procedure
+  parse arg consolename colorFormat .
+  cl=.ConsoleLib~new
+  if consolename='' then do
+    consolename=pickAItem(cl~getConsoles)
+    if consolename='' then return
+  end
+  cz=cl~getConsolePalette(consolename, colorFormat)
+  keys=cz~allIndexes~sort
+  loop item over keys
+    say cz~at(item) item
+  end
+  -- cl~listConsoleColors
+  return
+
+colorReport: procedure
+  parse arg consolename .
+  cl=.ConsoleLib~new
+  if consolename='' then do
+    consolename=pickAItem(cl~getConsoles)
+    if consolename='' then return
+  end
+  cz=cl~getConsolePalette(consolename, 'RGB')
+  tmpl='.box-?4 {background-color: rgb(?1,?2,?3);}'
+  loop key over cz~allIndexes~sort
+    say merge(tmpl, cz~at(key) key)
   end
   return
 
--- Convert a color integer into RGB component values
-d2rgb: procedure
-  arg decval
-  if \datatype(decval,'W') then return ''
-  bluedivisor=2**16
-  greendivisor=2**8
-  greenq=0
-  greenqi=0
-  blueq=decval%bluedivisor    -- int division
-  blueqi=decval//bluedivisor  -- remainder
-  if blueqi>0 then do
-    greenq=blueqi%greendivisor
-    greenqi=blueqi//greendivisor
+copyColors: procedure
+  parse arg source target .
+  if source='' | target='' then return
+  say 'Copy' source 'to' target
+  cl=.ConsoleLib~new
+  cl~listConsoleColors(source)
+  '@pause'
+  cl~listConsoleColors(target)
+  sourceColors=cl~getConsoleColors(source,0)
+  iter=sourceColors~supplier
+  ctr=0
+  do while iter~available
+    say source iter~index iter~item
+    say '  to' target':' cl~getColor(target, iter~index,0)
+    iter~next
+    ctr=ctr+1
   end
-  return left('R='greenqi,6) left('G='greenq,6) left('B='blueq,6)
-
-showall: procedure
-  parse arg name
-  call prompt 'powershell Get-Item "HKCU:\Console\'name'"'
   return
 
-copycolors: procedure
-  parse arg prof1 prof2
-  say 'Copying colors from profile' prof1 'to' prof2
-  say 'call powershell Get-Item "HKCU:\Console\'prof1'" |grep -i colortable |sort|colorfilter' prof2
-  return
-
-diffcolors: procedure
-  parse arg prof1 prof2
-  say 'Comparing colors from profile' prof1 'to' prof2
-  say 'call powershell Get-Item "HKCU:\Console\'prof1'" |grep -i colortable |sort|colorfilter' prof2 '-d'
-  return
-
-diffcolors2: procedure
-  parse arg prof1 prof2
-  say 'Comparing colors from profile' prof1 'to' prof2
-  say 'call powershell Get-Item "HKCU:\Console\'prof1'" |colorfilter' prof2 '-d'
-  r = .WindowsRegistry~new
-  if r~open(r~Current_User, 'Console')=0 then return
-  if r~List(,keys.)=0 then do
-    consoles=.array~new
-    do i over keys.
-      consoles~append(keys.i)
-    end i
-    choices=pickAIndexes(consoles)
-    say '>' choices
-    do w=1 to words(choices)
-      key=word(choices,w)
-      say '>>' consoles[key]
-    end w
+mergeTemplate: procedure
+  use arg rgbColors, tmpl
+  if tmpl=.nil then tmpl='r:?1 g:?2 b:?3'
+  ctr=0
+  loop item over rgbColors
+    ctr=ctr+1
+    say merge(tmpl, item ctr)
   end
-  /*
-  if r~open(r~Current_User, 'Console\'choice)<>0 then do
-    say 'Colors of Console\'choice':'
-    q.=r~query
-    if r~ListValues(,vals.)=0 then do i=1 to q.values
-      if pos('COLORTABLE', translate(vals.i.name))=0 then iterate
-      say compareColor vals.i.name, vals.i.data
-    end
-  end
-  */
-  return
-
-compareColor: procedure
-  parse arg name, value
-  -- if cval=tval then return ctable 'same'
-  -- else              return ctable 'Src='left(strip(cval),18) 'Target='tval
-  return 'ok'
+  return rgbColors~items
 
 ::requires 'winsystm.cls'
-::requires 'UtilRoutines.rex'
+::requires 'ConsoleLib.cls'
