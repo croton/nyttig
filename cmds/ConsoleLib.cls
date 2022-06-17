@@ -19,6 +19,7 @@
   colorDefaults.MISTYROSE=14804223
   colorDefaults.BLACK=16777215
 
+-- Get a list of the console names from the windows registry
 ::method getConsoles
   expose sysreg
   consolenames=.array~new
@@ -52,6 +53,12 @@
   sysreg~Close
   return colors
 
+
+/* -----------------------------------------------------------------------------
+   Get a collection of colors defined by a parent console. If a console
+   defines no new colors, then all its colors are derived from parent.
+   -----------------------------------------------------------------------------
+*/
 ::method getDefaultConsoleColors
   expose sysreg
   arg useRGB
@@ -92,6 +99,7 @@
   end
   return parentColors
 
+-- Get a color of a console by its index
 ::method getColor
   expose sysreg
   parse arg consolename, colorIndex, useRGB
@@ -104,6 +112,7 @@
   if inRGB then return self~d2rgb(st.data)
   return st.data
 
+-- Provide a windows registry fieldname for a given color by its index
 ::method colorKey
   arg index
   if \datatype(index,'W') then index=2
@@ -111,6 +120,7 @@
   else if index>16 then index=15
   return 'ColorTable'right(index,2,'0')
 
+-- Provide a validated windows color code
 ::method colorDefault
   expose colorDefaults.
   arg inValue
@@ -119,6 +129,7 @@
   else colorValue=inValue
   return colorValue
 
+-- Set a console color by its index and its windows color code
 ::method setColor
   expose sysreg
   parse arg consolename, colorIndex, colorValue
@@ -135,6 +146,7 @@
   sysreg~close
   return 1
 
+-- Set a console color by its index and its RGB color code
 ::method setColorRGB
   expose sysreg
   parse arg consolename, colorIndex, colorValue
@@ -147,11 +159,12 @@
     parse var colorValue R ',' G ',' B
     newcolor=self~rgb2hex(R, G, B)
     sysreg~setvalue(,field,newcolor,'NUMBER')
-    say key field st.data '=>' newcolor
+    say key field '('colorIndex')' st.data '=>' newcolor '('colorValue')'
   end
   sysreg~close
   return 1
 
+-- Convenience method to display colors of a console
 ::method listConsoleColors
   expose sysreg
   parse arg consolename
@@ -169,6 +182,7 @@
   sysreg~Close
   return
 
+-- Convenience method to display all attributes of a console
 ::method listConsoleAttributes
   expose sysreg
   parse arg consolename
@@ -202,6 +216,7 @@
   -- left('R='redq,6) left('G='greenq,6) left('B='blueq,6)
   return redq greenq blueq
 
+-- Convert RGB color code into a windows console color code
 ::method rgb2hex
   arg red, green, blue
   bluefactor=2**16

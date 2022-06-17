@@ -8,9 +8,12 @@ folder=parseOption('-f', options)
 if folder='' then folder='.'
 days=parseOption('-d', options)
 if \datatype(days,'W') then days=1
+currdir=optionExists('-c', options)
+if currdir then depth='-maxdepth 1'
+else            depth=''
 
 say 'Changed files in' folder 'in last' days 'day(s):'
-xcmd='ufind' folder '-type f -mtime -'days
+xcmd='ufind' folder '-type f -mtime -'days depth
 ADDRESS CMD xcmd
 exit
 
@@ -40,5 +43,6 @@ optionExists: procedure
 
 help:
 say 'cf - Show changed files in a folder within given number of days'
-say 'usage: cf [-f folder] [-d days]'
+say 'usage: cf [-f folder] [-d days] [-c]'
+say '  -c = search current folder only'
 exit

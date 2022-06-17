@@ -1,16 +1,15 @@
 /* dcalc -- Date calculations
-   See also www.rexxla.org/rexxlang/mfc/datec.html
+   See www.rexxla.org/rexxlang/mfc/datec.html
 */
 arg option params
-if option='-?' then call help
+if abbrev('?', option) then call help
 
 select
   when option='-A' then call addDate(params)
   when option='-D' then call getDaysFromToday(params)
   otherwise
-    say 'Tomorrow is' getRelativeDate(1, 'S')
+    say 'Tomorrow is' getRelativeDate(1, 'W') getRelativeDate(1, 'S')
 end
-
 exit
 
 addDate: procedure
@@ -19,9 +18,13 @@ addDate: procedure
   say days 'days from today:' getRelativeDate(days, format)
   return
 
+-- Get difference in days from today and the specified date (in standard format YYYYMMDD)
 getDaysFromToday: procedure
   arg standardDate, format
-  -- subtract today from given date
+  if \datatype(standardDate,'W') || length(standardDate)<>8 then do
+    say 'Please specify standard format, YYYYMMDD'
+    return
+  end
   say 'Date' standardDate '('date('Normal', standardDate, 'S')') is' getDateDiff(standardDate) 'days from today'
   return
 
@@ -39,4 +42,6 @@ getRelativeDate: procedure
 help:
 say 'dcalc - Date calculation tool'
 say 'usage: dcalc option args'
+say '  -a = add days to today'
+say '  -d = get difference in days'
 exit

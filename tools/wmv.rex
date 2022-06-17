@@ -16,6 +16,9 @@ w=wordpos('-nv',options)
 if w>0 then do; nudgeV=word(options,w+1); options=delword(options,w,2); end; else nudgeV=''
 title=options
 
+hOffset=8 -- a device-specific difference bw desktop width and position of right screen border
+screen2Left=1915 -- our current monitor 2 screen beginning pos x-axis
+screen2Width=3847 -- our current monitor 2 screen width
 winMgr=.WindowsManager~new
 thiswin=winMgr~ForegroundWindow
 if thiswin=.nil then say 'Sorry, unable to find foreground window!'
@@ -54,7 +57,7 @@ nudgeWindow: procedure expose winMgr
   winObj~moveTo(left+h, top+v)
   return
 
-moveWinByHV: procedure expose winMgr
+moveWinByHV: procedure expose winMgr hOffset screen2Left screen2Width
   parse arg title, horizontal, vertical
   h=translate(horizontal)
   v=translate(vertical)
@@ -67,22 +70,25 @@ moveWinByHV: procedure expose winMgr
   parse var winCoords left ',' top ',' right ',' bottom
   winWidth=right-left
   winHeight=bottom-top
+  parse value winMgr~desktopWindow~Coordinates with screenX ',' screenY ',' screenWidth ',' screenHeight
   select
     when h='' then h=left
     -- Justify LEFT screen
-    when h='L' then h=0
-    when h='R' then h=flushRight(winObj)
+    when h='L' then h=0-hOffset
+    when h='R' then h=alignRight(screenWidth, winWidth, hOffset)
+    when h='C' then h=alignCenterH(screenWidth, winWidth)
     -- Justify RIGHT screen
-    when h='LR' then h=1280
-    when h='RR' then h=0 -- not yet implemented
+    when h='L2' then h=screen2Left
+    when h='R2' then h=alignRight(screen2Width, winWidth)
     when \datatype(h,'W') then h=left
     otherwise nop
   end
   select
     when v='' then v=top
     when v='T' then v=0
-    when v='B' then v=flushBottom(winObj)
-    when v='BR' then v=1050-winHeight
+    when v='B' then v=alignBottom(screenHeight, winHeight)
+    when v='C' then v=alignCenterV(screenHeight, winHeight)
+    -- when v='BR' then v=1050-winHeight
     when \datatype(v,'W') then v=top
     otherwise nop
   end
@@ -96,7 +102,7 @@ moveWinByHV: procedure expose winMgr
   end
   return
 
-moveWinByCoordinates: procedure expose winMgr
+moveWinByCoordinates: procedure expose winMgr hOffset
   parse arg title, coordinates
   corner=translate(coordinates)
   winObj=winMgr~find(strip(title))
@@ -108,16 +114,43 @@ moveWinByCoordinates: procedure expose winMgr
   parse var winCoords left ',' top ',' right ',' bottom
   winWidth=right-left
   winHeight=bottom-top
+  parse value winMgr~desktopWindow~Coordinates with screenX ',' screenY ',' screenWidth ',' screenHeight
   select
-    when corner='NW' then do; h=0;              v=0; end
-    when corner='NE' then do; h=1280-winWidth;  v=0; end
-    when corner='SW' then do; h=0;              v=760-winHeight; end
-    when corner='SE' then do; h=1280-winWidth;  v=760-winHeight; end
-    when corner='NW2' then do; h=1280;          v=0; end
-    when corner='NE2' then do; h=2947-winWidth; v=0; end
-    when corner='SW2' then do; h=1280;          v=1050-winHeight; end
-    when corner='SE2' then do; h=2947-winWidth; v=1050-winHeight; end
-    otherwise h=0; v=0
+    when corner='NW' then do
+      h=0-hOffset;
+      v=0
+    end
+    when corner='NC' then do
+      h=alignCenterH(screenWidth, winWidth)
+      v=0
+    end
+    when corner='NE' then do
+      h=alignRight(screenWidth, winWidth, hOffset)
+      v=0
+    end
+    when corner='C' then do
+      h=alignCenterH(screenWidth, winWidth)
+      v=alignCenterV(screenHeight, winHeight)
+    end
+    when corner='SW' then do
+      h=0-hOffset
+      v=alignBottom(screenHeight, winHeight)
+    end
+    when corner='SC' then do
+      h=alignCenterH(screenWidth, winWidth)
+      v=alignBottom(screenHeight, winHeight)
+    end
+    when corner='SE' then do
+      h=alignRight(screenWidth, winWidth, hOffset)
+      v=alignBottom(screenHeight, winHeight)
+    end
+    /*
+    when corner='NW2' then do; h=1280;              v=0; end
+    when corner='NE2' then do; h=2947-winWidth;     v=0; end
+    when corner='SW2' then do; h=1280;              v=1050-winHeight; end
+    when corner='SE2' then do; h=2947-winWidth;     v=1050-winHeight; end
+    */
+    otherwise h=0-hOffset; v=0
   end
   if (h=left & v=top) then do
     call getWindowInfo winObj~Title, winCoords, winWidth, winHeight
@@ -140,34 +173,45 @@ showFirst: procedure expose winMgr
   say 'First child window of desktop is' c1~Title 'at' c1~Coordinates
   return
 
-flushRight: procedure expose winMgr
+flushRight: procedure expose winMgr hOffset
   use arg winObj
   parse value winMgr~desktopWindow~Coordinates with screenX ',' screenY ',' screenWidth ',' screenHeight
   parse value winObj~Coordinates with winL ',' winTop ',' winR ',' winBottom
-  return screenWidth-(winR-winL)+5
+  return screenWidth-(winR-winL)+hOffset
 
 flushBottom: procedure expose winMgr
   use arg winObj
   parse value winMgr~desktopWindow~Coordinates with screenX ',' screenY ',' screenWidth ',' screenHeight
   parse value winObj~Coordinates with winL ',' winTop ',' winR ',' winBottom
-  taskbarHeight=34
-  return screenHeight-(winBottom-winTop)-taskbarHeight
+  taskbarHeight=34 -- subtract this from figure below to place above taskbar
+  return screenHeight-(winBottom-winTop)
+
+alignRight: procedure
+  arg screenWidth, winWidth, offset
+  if \datatype(offset,'W') then offset=0
+  return screenWidth-winWidth+offset
+
+alignCenterH: procedure
+  arg screenWidth, winWidth
+  return format((screenWidth-winWidth)/2,,0)-1
+
+alignCenterV: procedure
+  arg screenHeight, winHeight
+  return format((screenHeight-winHeight)/2,,0)-1
+
+alignBottom: procedure
+  arg screenHeight, winHeight
+  return screenHeight-winHeight
 
 help:
   say 'winmv - Move a window on the desktop'
-  say 'usage: winmv title [-h horizontal] [-v vertical] [-co corner]'
+  say 'usage: winmv title [-h horizontal] [-v vertical] [-c placement]'
   say 'Special values for horizontal, vertical, corner:'
-  say '  -h L = flush left on left screen'
-  say '  -h R = flush right on left screen'
-  say '  -h LR = flush left on right screen'
-  say '  -h RR = flush right on right screen'
-  say '  -v T = flush top'
-  say '  -v B = flush bottom, left screen'
-  say '  -v BR = flush bottom, right screen'
+  say '  -h L | L2 | C | R | R2 | n = align horizontally'
+  say '  -v T | C | B | n = align vertically'
   say '  -n digits = nudge horizontally by digits'
   say '  -nv digits = nudge vertically by digits'
-  say '  -c NW | NE | SW | SE = left screen corners'
-  say '  -c NW2 | NE2 | SW2 | SE2 = right screen corners'
+  say '  -c NW | NC | NE | C | SW | SC | SE = placements'
   exit
 
 ::requires 'winSystm.cls'
