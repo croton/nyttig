@@ -111,25 +111,34 @@
   return
 
 ::routine mergeBranch PUBLIC
-  parse arg targetBranch
-  if targetBranch='' then do
+  parse arg targetBranch docommit
+  if abbrev('?', targetBranch) then do
     say 'Choose a branch to be merged (curr='getBranch()'):'
     targetBranch=pickAItem(getAvailableBranches())
     if targetBranch='' then return
   end
-  call prompt 'git merge' targetBranch
+  -- Make sure we have latest changes from remote
+  say 'Fetching latest from remote...'
+  'git fetch origin'
+  call editBranch 'PULL'
+  noCommit='--no-commit --no-ff'
+  call prompt 'git merge' targetBranch ?(docommit='',noCommit,'')
   return
 
 /* View the change history for a given file */
 ::routine logByFile PUBLIC
   parse arg filespec fromDate patch
-  if abbrev('-?', filespec) then do
+  if abbrev('?', filespec) then do
     say 'logByFile filespec [fromDate] [patch]'
     say '  fromDate = [yyyyMmDd | days]'
-    return
+    return ''
   end
-  fn=pickFile(filespec)
-  if fn='' then return
+  if left(filespec,1)='.' then fn=filespec
+  else                    fn=pickFile(filespec, 'src')  -- do file lookup relative to .\src
+  if fn='' then do
+    say 'Unable to find file "'filespec'".'
+    return ''
+  end
   if fromDate='' | fromDate='.' then
     gcmd='git log --pretty=format:"%h %aD: %s" --follow'
   else
@@ -137,7 +146,7 @@
   if patch='' then gcmd=gcmd fn
   else             gcmd=gcmd '-p' fn
   call runcmd gcmd
-  return
+  return gcmd
 
 /* Show logs according to date and/or author */
 ::routine logByDateAuthor PUBLIC
@@ -160,7 +169,7 @@
 
 ::routine showLastLogs PUBLIC
   arg count
-  defaultCount=10
+  defaultCount=25
   gcmd='git show --name-only --oneline'
   ADDRESS CMD gcmd
   if datatype(count,'W') then do
@@ -185,9 +194,15 @@
     if sha<>'' then rev=word(sha,1)
   end
   fnt=translate(fn, '/', '\')
-  if rev='' then gcmd='git show' fnt
-  else           gcmd='git show' hd(rev)':'fnt
-  call prompt gcmd
+  if rev='' then do
+    'start notepad' fnt
+  end
+  else do
+    target=hd(rev)':'fnt
+    tempfile='tmp-'hd(rev)||'-'filespec('n', fnt)
+    'git show' target '>' tempfile
+    'start notepad' tempfile
+  end
   return gcmd
 
 /* Compare a currently changed file or one from a given commit */
@@ -227,6 +242,33 @@
   call runcmd gcmd params, 1
   return
 
+/* Compare two versions of a given file */
+::routine compareFile PUBLIC
+  parse arg filename oldv newv
+  if filename='' then do
+    say 'compareFile: filename previous_commit newer_commit'
+    return
+  end
+  -- Set default commits
+  olderCommit=?(oldv='', 'HEAD~1', hd(oldv))
+  newerCommit=?(newv='', 'HEAD', hd(newv))
+  call prompt 'git diff' olderCommit newerCommit '--' filename
+return
+
+/* Compare two commits, optionally specifying a single file */
+::routine diffByVersion PUBLIC
+  parse arg oldv newv filename
+  if oldv='' then do
+    say 'diffByVersion: previous_commit newer_commit [filename]'
+    return
+  end
+  if filename='' then
+    gcmd='git diff' hd(oldv) hd(newv)
+  else
+    gcmd='git diff' hd(oldv) hd(newv) '--' filename
+  call prompt gcmd
+  return
+
 ::routine compareAdjacentCommits public
   parse arg fspec rev
   fn=pickFile(fspec)
@@ -235,7 +277,7 @@
   else do
     headOffset=toNum(rev)
     if rev='' then gcmd='git diff HEAD~1 HEAD --' fn
-    else           gcmd='git diff' hd('~'headOffset+1) hd('~'headOffset) '--' fn
+    else           gcmd='git diff' hd(headOffset+1) hd(headOffset) '--' fn
     call prompt gcmd
   end
   return gcmd
@@ -440,16 +482,19 @@
   if author<>'' then options=options '--author="'author'"'
   return strip(options)
 
-/* Provide shortcut where "~n" will expand to "HEAD~n" */
+/* A shortcut where "n" will expand to "HEAD~n" while n LT 100, otherwise n=SHA */
 ::routine hd public
-  parse arg input, prefix
-  if prefix='' then prefix='~'
-  select
-    when pos(prefix, input)=0 then rval=input
-    when input=prefix         then rval='HEAD'
-    otherwise rval='HEAD~'toNum(substr(input,2))
+  parse arg input
+  if abbrev('~', input) then return 'HEAD'
+  else if datatype(input,'W') then select
+    -- A value of 0 indicates HEAD offset 0, or just HEAD
+    when input=0 then return 'HEAD'
+    -- or HEAD offset 1 through 99
+    when input<100 then return 'HEAD~'||(input*1)
+    -- or a commit ID, or SHA
+    otherwise return input
   end
-  return rval
+  return input
 
 /* Constrain numerical values to a smaller range */
 ::routine toNum public

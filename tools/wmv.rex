@@ -16,9 +16,9 @@ w=wordpos('-nv',options)
 if w>0 then do; nudgeV=word(options,w+1); options=delword(options,w,2); end; else nudgeV=''
 title=options
 
-hOffset=8 -- a device-specific difference bw desktop width and position of right screen border
-screen2Left=1915 -- our current monitor 2 screen beginning pos x-axis
-screen2Width=3847 -- our current monitor 2 screen width
+H_OFFSET=7 -- a device-specific difference bw desktop width and position of right screen border
+SCREEN_2_LEFT=1915 -- our current monitor 2 screen beginning pos x-axis
+SCREEN_2_WIDTH=3847 -- our current monitor 2 screen width
 winMgr=.WindowsManager~new
 thiswin=winMgr~ForegroundWindow
 if thiswin=.nil then say 'Sorry, unable to find foreground window!'
@@ -57,7 +57,7 @@ nudgeWindow: procedure expose winMgr
   winObj~moveTo(left+h, top+v)
   return
 
-moveWinByHV: procedure expose winMgr hOffset screen2Left screen2Width
+moveWinByHV: procedure expose winMgr H_OFFSET SCREEN_2_LEFT SCREEN_2_WIDTH
   parse arg title, horizontal, vertical
   h=translate(horizontal)
   v=translate(vertical)
@@ -74,12 +74,12 @@ moveWinByHV: procedure expose winMgr hOffset screen2Left screen2Width
   select
     when h='' then h=left
     -- Justify LEFT screen
-    when h='L' then h=0-hOffset
-    when h='R' then h=alignRight(screenWidth, winWidth, hOffset)
+    when h='L' then h=0-H_OFFSET
+    when h='R' then h=alignRight(screenWidth, winWidth, H_OFFSET)
     when h='C' then h=alignCenterH(screenWidth, winWidth)
     -- Justify RIGHT screen
-    when h='L2' then h=screen2Left
-    when h='R2' then h=alignRight(screen2Width, winWidth)
+    when h='L2' then h=SCREEN_2_LEFT
+    when h='R2' then h=alignRight(SCREEN_2_WIDTH, winWidth)
     when \datatype(h,'W') then h=left
     otherwise nop
   end
@@ -102,7 +102,7 @@ moveWinByHV: procedure expose winMgr hOffset screen2Left screen2Width
   end
   return
 
-moveWinByCoordinates: procedure expose winMgr hOffset
+moveWinByCoordinates: procedure expose winMgr H_OFFSET
   parse arg title, coordinates
   corner=translate(coordinates)
   winObj=winMgr~find(strip(title))
@@ -117,7 +117,7 @@ moveWinByCoordinates: procedure expose winMgr hOffset
   parse value winMgr~desktopWindow~Coordinates with screenX ',' screenY ',' screenWidth ',' screenHeight
   select
     when corner='NW' then do
-      h=0-hOffset;
+      h=0-H_OFFSET;
       v=0
     end
     when corner='NC' then do
@@ -125,7 +125,7 @@ moveWinByCoordinates: procedure expose winMgr hOffset
       v=0
     end
     when corner='NE' then do
-      h=alignRight(screenWidth, winWidth, hOffset)
+      h=alignRight(screenWidth, winWidth, H_OFFSET)
       v=0
     end
     when corner='C' then do
@@ -133,7 +133,7 @@ moveWinByCoordinates: procedure expose winMgr hOffset
       v=alignCenterV(screenHeight, winHeight)
     end
     when corner='SW' then do
-      h=0-hOffset
+      h=0-H_OFFSET
       v=alignBottom(screenHeight, winHeight)
     end
     when corner='SC' then do
@@ -141,7 +141,7 @@ moveWinByCoordinates: procedure expose winMgr hOffset
       v=alignBottom(screenHeight, winHeight)
     end
     when corner='SE' then do
-      h=alignRight(screenWidth, winWidth, hOffset)
+      h=alignRight(screenWidth, winWidth, H_OFFSET)
       v=alignBottom(screenHeight, winHeight)
     end
     /*
@@ -150,7 +150,7 @@ moveWinByCoordinates: procedure expose winMgr hOffset
     when corner='SW2' then do; h=1280;              v=1050-winHeight; end
     when corner='SE2' then do; h=2947-winWidth;     v=1050-winHeight; end
     */
-    otherwise h=0-hOffset; v=0
+    otherwise h=0-H_OFFSET; v=0
   end
   if (h=left & v=top) then do
     call getWindowInfo winObj~Title, winCoords, winWidth, winHeight
@@ -173,11 +173,11 @@ showFirst: procedure expose winMgr
   say 'First child window of desktop is' c1~Title 'at' c1~Coordinates
   return
 
-flushRight: procedure expose winMgr hOffset
+flushRight: procedure expose winMgr H_OFFSET
   use arg winObj
   parse value winMgr~desktopWindow~Coordinates with screenX ',' screenY ',' screenWidth ',' screenHeight
   parse value winObj~Coordinates with winL ',' winTop ',' winR ',' winBottom
-  return screenWidth-(winR-winL)+hOffset
+  return screenWidth-(winR-winL)+H_OFFSET
 
 flushBottom: procedure expose winMgr
   use arg winObj

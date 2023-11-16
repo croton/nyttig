@@ -9,9 +9,9 @@ select
   when pfx='bd' then 'git branch --sort=-committerdate -v|head -'getnum(options,10)
   when pfx='bdel' then call cleanBranches options
   when pfx='bm' then call mergeBranch options
+  when pfx='bmc' then call mergeBranch '? do-commit'
   when pfx='bn' then call prompt 'git checkout -b' options
   when pfx='bu' then call branchUpstream options
-  when pfx='cfg' then 'git config --list --show-origin'
   when pfx='ck' then 'git checkout' options
   when pfx='ckt' then call prompt 'git checkout --track origin/'options
   when pfx='cm' then call commit 0, options
@@ -21,7 +21,8 @@ select
   when pfx='dfs' then 'git diff --staged' options
   when pfx='dd' then call diffByFile options
   when pfx='ddt' then call diffByFile options, 'GUI'
-  when pfx='dh' then call diffByVersion options
+  -- when pfx='dh' then call diffByVersion options
+  when pfx='dv' then call compareFile options
   when pfx='f' then 'echo Fetching... & git fetch origin'
   when pfx='l' then 'git log --oneline -n' getnum(options,10)
   when pfx='lda' then call logByDateAuthor options
@@ -35,7 +36,7 @@ select
   when pfx='re' then 'echo Listing remotes... & git remote -v'
   when pfx='rema' then call prompt 'git remote add origin' options
   when pfx='reset' then call applyCmd2ChangedFiles 'git reset HEAD', 'Unstage which file(s)?'
-  when pfx='reset2' then call prompt 'git reset HEAD' options
+  when pfx='xstage' then call prompt 'git reset HEAD *'
   when pfx='reb' then call prompt 'git rebase master'
   when pfx='rf' then call rollbackfile options
   when pfx='s' then 'git status -uno' options '|grep -ve "\.\."'
@@ -43,7 +44,6 @@ select
   when pfx='sf' then call showChanged options
   when pfx='so' then call showByHead '--name-only', options
   when pfx='sos' then call showByHead '--stat --oneline', options
-  when pfx='ui' then 'start git-gui'
   when pfx='vf' then call viewfile options
   when pfx='xt' then 'git ls-files . --exclude-standard --others'
   when pfx='?' then call help options
@@ -69,7 +69,6 @@ help: procedure
   when xfx='tag' then call maketag options, 1
   when xfx='vtag' then call viewtag options
   when xfx='ptag' then call pushtag options
-  when xfx='dfts' then 'git difftool --staged' options
   when xfx='rpo' then 'git remote prune origin'
 */
 ::requires 'gitlib.rex'
